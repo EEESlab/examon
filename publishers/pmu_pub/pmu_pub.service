@@ -1,0 +1,12 @@
+[Unit]
+Description=pmu_pub Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/etc/pmu_pub/pmu_pub run
+Restart=on-abort
+WorkingDirectory=/usr/etc/pmu_pub
+
+[Install]
+WantedBy=multi-user.target

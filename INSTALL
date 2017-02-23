@@ -1,0 +1,20 @@
+Quickstart - Installation
+=========================
+
+Build
+-----
+(See below for the configuration details)::
+
+ >$ make
+
+ >$ cd ./publishers/pmu_pub
+
+Rename the "example_pmu_pub.conf" file and the "example_host_whitelist" file respectively to "pmu_pub.conf" and  "host_whitelist". Edit both with the appropriate parameters (see below)::
+
+ >$ make PREFIX=<install-dir> install
+
+Start
+-----
+::
+
+ >$ sudo pmu_pub run
