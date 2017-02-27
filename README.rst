@@ -1,4 +1,4 @@
-Antarex HPC Monitoring
+Examon HPC Monitoring
 ======================
 
 A highly scalable framework for the performance and energy monitoring of HPC servers
