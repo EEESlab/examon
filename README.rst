@@ -203,7 +203,7 @@ The following instructions indicate how to build a single node measuring setup c
 2) Edit the "pmu_pub.conf" file and set at least the following parameters::
 
    a) brokerHost: IP address of the node where the broker is running. If it is running on the same machine set equal to 127.0.0.1
-   b) topic: set it to:  org/antarex/cluster/testcluster
+   b) topic: set it to:  org/myorganization/cluster/testcluster
 
 3) Make sure that the msr driver is loaded::
 
@@ -218,11 +218,11 @@ The following instructions indicate how to build a single node measuring setup c
 5) Subscribing to the topic it is possible to redirect the data stream to the shell or to a file.
    An MQTT subscriber client is available in the ./lib/mosquitto-1.3.5/clients folder. Assuming the broker is running at IP address 127.0.0.1, the following command will print on the standard output the data published by the sampling process "pmu_pub"::
 
-   >$ ./mosquitto_sub -h 127.0.0.1 -t "org/antarex/cluster/testcluster/#" -v
+   >$ ./mosquitto_sub -h 127.0.0.1 -t "org/myorganization/cluster/testcluster/#" -v
 
    or::
 
-   >$ ./mosquitto_sub -h 127.0.0.1 -t "org/antarex/cluster/testcluster/#" -v >> cpudata.log
+   >$ ./mosquitto_sub -h 127.0.0.1 -t "org/myorganization/cluster/testcluster/#" -v >> cpudata.log
 
    for saving to a file.
 
@@ -230,11 +230,11 @@ The following instructions indicate how to build a single node measuring setup c
 
    Example (assuming that "TESTNODE" is the hostname where the pmu_pub service is running::
 
-   >$ python ./pmu_pub_sp.py -b 127.0.0.1 -p 1883 -t org/antarex/cluster/testcluster/node/TESTNODE/plugin/pmu_pub/chnl/data -o org/antarex/cluster/testcluster/node/TESTNODE/plugin/pmu_pub/chnl/data 
+   >$ python ./pmu_pub_sp.py -b 127.0.0.1 -p 1883 -t org/myorganization/cluster/testcluster/node/TESTNODE/plugin/pmu_pub/chnl/data -o org/myorganization/cluster/testcluster/node/TESTNODE/plugin/pmu_pub/chnl/data 
 
    the additional metrics will be available at::
 
-   >$ ./mosquitto_sub -h 127.0.0.1 -t "org/antarex/cluster/testcluster/node/TESTNODE/plugin/pmu_pub/chnl/data/#" -v
+   >$ ./mosquitto_sub -h 127.0.0.1 -t "org/myorganization/cluster/testcluster/node/TESTNODE/plugin/pmu_pub/chnl/data/#" -v
 
 7) To kill the sampling process, in the ./publishers/pmu_pub folder execute::
 
