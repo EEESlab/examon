@@ -1,4 +1,4 @@
-# ANTAREX Collector Makefile
+# Collector Makefile
 # © 2017 ETH Zurich, 
 #   [Integrated System Laboratory, D-ITET], 
 #   [Antonio Libri, a.libri@iis.ee.ethz.ch]
@@ -14,7 +14,7 @@ LIBS = $(LIBMOSQ) -lssl -lcrypto
 
 all:
 	$(MAKE) -C $(MOSQUITTO)
-	gcc collector-example.c antarex_collector.c -o collector-example -g -fopenmp $(INC) $(LIBS)
+	gcc collector-example.c collector.c -o collector-example -g -fopenmp $(INC) $(LIBS)
 
 clean:
 	$(MAKE) -C $(MOSQUITTO) $$dir clean;

@@ -1,4 +1,4 @@
-/* ANTAREX - Collector API Usage Example.
+/* Collector API Usage Example.
  *
  * © 2017 ETH Zurich, 
  *   [Integrated System Laboratory, D-ITET], 
@@ -8,18 +8,18 @@
  *   [Department of Electrical, Electronic and Information Engineering, DEI],
  *   [Andrea Bartolini, a.bartolini@unibo.it]
  */
-#include "antarex_collector.h"
+#include "collector.h"
 #include <signal.h>
 
 /*
- * ANTAREX Collector macro.
+ * Collector macro.
  *
  * Note. The topics below listen to the pow_pkg and pow_dram metrics 
  *       of all CPU sockets in the compute node.
  * 
  */
-#define TOPIC_POWER_PKG "org/antarex/cluster/testcluster/node/%s/plugin/pmu_pub/chnl/data/cpu/+/pow_pkg"
-#define TOPIC_POWER_DRAM "org/antarex/cluster/testcluster/node/%s/plugin/pmu_pub/chnl/data/cpu/+/pow_dram"
+#define TOPIC_POWER_PKG "org/myorg/cluster/testcluster/node/%s/plugin/pmu_pub/chnl/data/cpu/+/pow_pkg"
+#define TOPIC_POWER_DRAM "org/myorg/cluster/testcluster/node/%s/plugin/pmu_pub/chnl/data/cpu/+/pow_dram"
 #define MQTT_BROKER_IP "127.0.0.1"
 #define MQTT_PORT 1883 // Default MQTT port
 

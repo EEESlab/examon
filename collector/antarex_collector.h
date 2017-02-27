@@ -1,4 +1,4 @@
-/* ANTAREX - Collector API.
+/* Collector API.
  *
  * © 2017 ETH Zurich, 
  *   [Integrated System Laboratory, D-ITET], 
@@ -43,7 +43,7 @@ struct collector_val
 };
 
 /**
- * collector_init() - Initialize ANTAREX collector
+ * collector_init() - Initialize collector
  * @val:              Struct containing the state of the metric
  * @mqtt_broker_ip:   MQTT Broker IP Address
  * @mqtt_port:        MQTT Broker port
@@ -77,7 +77,7 @@ int collector_get(struct collector_val *val);
 int collector_end(struct collector_val *val);
 
 /**
- * collector_clean() - Cleanup ANTAREX collector
+ * collector_clean() - Cleanup collector
  * @val:               Struct containing the state of the metric
  
  * Returns:            0 on Success, 1 on Failure.

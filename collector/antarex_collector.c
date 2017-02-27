@@ -1,4 +1,4 @@
-/* ANTAREX - Collector API.
+/* Collector API.
  *
  * © 2017 ETH Zurich, 
  *   [Integrated System Laboratory, D-ITET], 
@@ -8,12 +8,12 @@
  *   [Department of Electrical, Electronic and Information Engineering, DEI],
  *   [Andrea Bartolini, a.bartolini@unibo.it]
  */
-#include "antarex_collector.h"
+#include "collector.h"
 
 #define MONITORING_BENEVENTI
 
-static void antarex_connect_callback(struct mosquitto*, void*, int result);
-static void antarex_message_callback(struct mosquitto *, void*, const struct mosquitto_message*);
+static void connect_callback(struct mosquitto*, void*, int result);
+static void message_callback(struct mosquitto *, void*, const struct mosquitto_message*);
 
 int collector_init(struct collector_val *val, char *mqtt_broker_ip, int mqtt_port)
 {
@@ -24,8 +24,8 @@ int collector_init(struct collector_val *val, char *mqtt_broker_ip, int mqtt_por
       return 1;
    }
 
-   mosquitto_connect_callback_set(val->mosq, antarex_connect_callback);
-   mosquitto_message_callback_set(val->mosq, antarex_message_callback);
+   mosquitto_connect_callback_set(val->mosq, connect_callback);
+   mosquitto_message_callback_set(val->mosq, message_callback);
 
    if(mosquitto_connect(val->mosq, mqtt_broker_ip, mqtt_port, MQTT_KEEPALIVE)){
       fprintf(stderr, "[Collector]: Unable to connect to the broker.\n");
@@ -94,7 +94,7 @@ int collector_clean(struct collector_val *val)
    return 0;
 }
 
-static void antarex_connect_callback(struct mosquitto *mosq, void *userdata, int result)
+static void connect_callback(struct mosquitto *mosq, void *userdata, int result)
 {
    if(!result){
       /* 
@@ -107,7 +107,7 @@ static void antarex_connect_callback(struct mosquitto *mosq, void *userdata, int
    }
 }
 
-static void antarex_message_callback(struct mosquitto *mosq, void *userdata, 
+static void message_callback(struct mosquitto *mosq, void *userdata, 
                                        const struct mosquitto_message *message)
 {
    struct collector_val *tmp_val = userdata;
