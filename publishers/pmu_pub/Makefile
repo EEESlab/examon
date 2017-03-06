@@ -1,6 +1,6 @@
 
 CC = gcc
-CFLAGS = 
+CFLAGS = -std=gnu89
 INSTALL = install
 PREFIX=./bin
 INC = -I../../lib/iniparser/src -I../../lib/mosquitto-1.3.5/lib -I../../lib/perfmon2-libpfm4/include/
@@ -11,7 +11,7 @@ LIBS = -lm $(LIBMOSQ) $(LIBPFM) -lssl -lcrypto -lrt -lpthread -liniparser
 FILES = pmu_pub.c sensor_read_lib.c perf_event_lib.c
 TARGET = pmu_pub
 DESTDIR=$(PREFIX)
-CFGFILE=./{pmu_pub.conf,host_whitelist}
+CFGFILE=pmu_pub.conf host_whitelist
 
 
 build: $(FILES)
