@@ -216,13 +216,13 @@ The following instructions indicate how to build a single node measuring setup c
    At this point the CPU data should be available to the broker at the topic indicated in the .conf file
 
 5) Subscribing to the topic it is possible to redirect the data stream to the shell or to a file.
-   An MQTT subscriber client is available in the ./lib/mosquitto-1.3.5/clients folder. Assuming the broker is running at IP address 127.0.0.1, the following command will print on the standard output the data published by the sampling process "pmu_pub"::
+   An MQTT subscriber client is available in the ./lib/mosquitto-1.3.5/client folder. Assuming the broker is running at IP address 127.0.0.1, the following command will print on the standard output the data published by the sampling process "pmu_pub"::
 
-   >$ ./mosquitto_sub -h 127.0.0.1 -t "org/myorg/cluster/testcluster/#" -v
+   >$ LD_LIBRARY_PATH=../lib/:$LD_LIBRARY_PATH ./mosquitto_sub -h 127.0.0.1 -t "org/myorg/cluster/testcluster/#" -v
 
    or::
 
-   >$ ./mosquitto_sub -h 127.0.0.1 -t "org/myorg/cluster/testcluster/#" -v >> cpudata.log
+   >$ LD_LIBRARY_PATH=../lib/:$LD_LIBRARY_PATH ./mosquitto_sub -h 127.0.0.1 -t "org/myorg/cluster/testcluster/#" -v >> cpudata.log
 
    for saving to a file.
 
@@ -234,7 +234,7 @@ The following instructions indicate how to build a single node measuring setup c
 
    the additional metrics will be available at::
 
-   >$ ./mosquitto_sub -h 127.0.0.1 -t "org/myorg/cluster/testcluster/node/TESTNODE/plugin/pmu_pub/chnl/data/#" -v
+   >$ LD_LIBRARY_PATH=../lib/:$LD_LIBRARY_PATH ./mosquitto_sub -h 127.0.0.1 -t "org/myorg/cluster/testcluster/node/TESTNODE/plugin/pmu_pub/chnl/data/#" -v
 
 7) To kill the sampling process, in the ./publishers/pmu_pub folder execute::
 
