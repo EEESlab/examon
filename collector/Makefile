@@ -15,7 +15,6 @@ LIBS = $(LIBMOSQ) -lssl -lcrypto
 all: lib
 	$(MAKE) -C $(MOSQUITTO)
 	gcc collector-example.c collector.c -o collector-example -g -fopenmp $(INC) $(LIBS)
-	ar rcs libcollector.a collector.o
 
 lib:
 	gcc -c collector.c $(INC) -fopenmp -g -o collector.o
