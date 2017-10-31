@@ -25,6 +25,13 @@
 #include "pmu_pub.h"
 #include "sensor_read_lib.h"
 
+
+static inline int
+set_env_var(const char *var, const char *value, int ov)
+{
+	return setenv(var, value, ov);
+}
+
 int _perf_event_open(struct perf_event_attr *attr, pid_t pid, int cpu, int group_fd, unsigned long flags) {
     return syscall(__NR_perf_event_open, attr, pid, cpu, group_fd, flags);
 }
@@ -145,6 +152,11 @@ int perf_program_os_events(int num_events, const char **events, int **fd, struct
     int leader_counter = -1;
     int group = 0;
     int num_core_events = 0;
+
+
+    ret = set_env_var("LIBPFM_ENCODE_INACTIVE", "1", 1); 	
+    if (ret != PFM_SUCCESS) 		
+	errx(1, "cannot force inactive encoding");
 
 
     ret = pfm_initialize();

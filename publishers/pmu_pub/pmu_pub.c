@@ -9,7 +9,7 @@
  * Francesco Beneventi <francesco.beneventi@unibo.it>
  * Andrea Bartolini	<barandre@iis.ee.ethz.ch>
  * 
- *  v0.2.2
+ *  v0.2.3
  * 
  * Date:
  * 19/09/2014
@@ -45,7 +45,7 @@ struct mosquitto* mosq;
 timer_t timer1;
 int keepRunning;
 char * sync_ck = "CK";
-char const *version = "v0.2.2";
+char const *version = "v0.2.3";
 
 
 inline void pub_to_broker(struct sys_data * sysd, struct mosquitto * mosq);
@@ -239,7 +239,7 @@ void pub_to_broker(struct sys_data * sysd, struct mosquitto * mosq) {
             PUB_METRIC("cpu", "C3", sysd->cpu_data[cpuid].C3, cpuid, "%lu;%s");
             PUB_METRIC("cpu", "C6", sysd->cpu_data[cpuid].C6, cpuid, "%lu;%s");
             if (sysd->CPU_MODEL == HASWELL_EP) {
-                PUB_METRIC("cpu", "uclk", sysd->cpu_data[cpuid].uclk, cpuid, "%u;%s");
+                PUB_METRIC("cpu", "uclk", sysd->cpu_data[cpuid].uclk, cpuid, "%lu;%s");
             }
             //if (sysd->use_perf){
             if (1) { // Currently always read and send uncore events 
@@ -834,7 +834,7 @@ void main(int argc, char* argv[]) {
             fprintf(fp, "Start now...\n");
             fprintf(fp, "Daemon mode...\n");
             fprintf(fp, "Open log file: %s\n", sysd_.logfile);
-            fp = fopen(sysd_.logfile, "a");
+            fp = fopen(sysd_.logfile, "w");
             daemonize(pidfile);
             break;
         case STOP:
@@ -861,7 +861,7 @@ void main(int argc, char* argv[]) {
             fprintf(fp, "Restart now...\n");
             fprintf(fp, "Daemon mode...\n");
             fprintf(fp, "Open log file: %s\n", sysd_.logfile);
-            fp = fopen(sysd_.logfile, "a");
+            fp = fopen(sysd_.logfile, "w");
             daemonize(pidfile);
             break;
         default:
