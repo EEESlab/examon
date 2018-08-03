@@ -49,6 +49,13 @@ Available in the following distro packages:
 - "libssl-dev" in Ubuntu/Debian 
 - "openssl-devel" in Centos
 
+Enable RDPMC instruction in Kernels >4.X
+-----------------------------------------
+Starting from Kernels v4.X the usage of the RDPMC instruction from userspace need to be explicitly enabled.
+This can be accomplished executing this command::
+
+>$ sudo sh -c "echo '2' > /sys/bus/event_source/devices/cpu/rdpmc"
+
 
 Repository organization
 =======================
