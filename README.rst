@@ -253,7 +253,7 @@ The following instructions indicate how to build a single node measuring setup c
 
 ACKNOWLEDGMENTS
 ---------------
-Development of the EXAMON has been supported by the EU FETHPC project [ANTAREX](http://www.antarex-project.eu/home#intro) (g.a. 671623), and EU ERC Project MULTITHERMAN (g.a. 291125).
+Development of the EXAMON has been supported by the EU FETHPC project [ANTAREX]:http://www.antarex-project.eu/home#intro (g.a. 671623), and EU ERC Project MULTITHERMAN (g.a. 291125).
 
 
 
