@@ -18,7 +18,7 @@ Energy
 Energy consumed by the unit x (CPU socket or DRAM) in the time 
 interval (t1-t0):
 
-     DE_x = Erg_U·(Erg_x(t1) - Erg_x(t0))
+     DErg_x = Erg_U·(Erg_x(t1) - Erg_x(t0))
 
 
 Power
