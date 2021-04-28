@@ -50,7 +50,7 @@ Follow the normal procedure for adding a new data source:
 Fill out the form with the following settings:
 
  - Type: `KairosDB`  
- - Name `kairosdb` 
+ - Name: `kairosdb` 
  - Url: http://kairosdb:8083 
  - Access: `Proxy`
 
