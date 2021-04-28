@@ -1,0 +1,83 @@
+version: "3.8"
+
+networks:
+  examon_net:
+    driver: bridge
+
+services:
+  examon:
+    image: examonhpc/examon:0.1.0
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "1"
+    restart: always
+    ports:
+      - "1883:1883"
+    networks:
+      - examon_net
+    environment:
+      - EX_KAIROSDB_HOST=kairosdb
+    depends_on:
+      - kairosdb
+
+  grafana:
+    build:
+      context: ./grafana
+    image: examonhpc/grafana:5.4.3 
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "1"
+    restart: always
+    ports:
+      - "3000:3000"
+    networks:
+      - examon_net
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=Password
+    depends_on:
+      - kairosdb
+
+  kairosdb:
+    build:
+      context: ./kairosdb
+    image: examonhpc/kairosdb:1.2.1
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "1"
+    restart: always
+    ports:
+      - "8083:8083"
+    networks:
+      - examon_net
+    environment:      
+      - CASSANDRA_HOST_LIST=cassandra:9042
+    depends_on:
+      - cassandra
+
+  cassandra:
+    build:
+      context: ./cassandra
+    image: examonhpc/cassandra:3.0.19
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "1"
+    restart: always
+    ports:
+      - "9042:9042"
+    volumes:
+      - ${PWD}/cassandra_volume:/var/lib/cassandra
+    networks:
+      - examon_net
+    environment:
+      - CASSANDRA_CLUSTER_NAME=examon
+      - CASSANDRA_BROADCAST_ADDRESS=cassandra
+      - CASSANDRA_START_RPC=true
+      - CASSANDRA_LISTEN_ADDRESS=auto

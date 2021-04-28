@@ -1,0 +1,68 @@
+{
+  "name": "babel-plugin-transform-global-system-wrapper",
+  "version": "0.0.1",
+  "description": "Converts global scripts into named System.registerDynamic('name', [], ...",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/systemjs/babel-plugin-transform-global-system-wrapper.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "dependencies": {
+    "babel-template": "^6.9.0"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.4.5",
+    "babel-core": "^6.10.4",
+    "babel-preset-es2015": "^6.3.13",
+    "babel-register": "^6.9.0",
+    "file-exists": "^1.0.0",
+    "mocha": "^2.2.5",
+    "rimraf": "^2.5.3"
+  },
+  "scripts": {
+    "clean": "rimraf lib",
+    "build": "babel src -d lib",
+    "test": "mocha --compilers js:babel-register",
+    "test:watch": "npm run test -- --watch",
+    "prepublish": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "babel",
+    "plugin",
+    "systemjs",
+    "babel-plugin"
+  ],
+  "gitHead": "ebc6e9e0de3e338462bc31314a8df548cd64d8cd",
+  "bugs": {
+    "url": "https://github.com/systemjs/babel-plugin-transform-global-system-wrapper/issues"
+  },
+  "homepage": "https://github.com/systemjs/babel-plugin-transform-global-system-wrapper#readme",
+  "_id": "babel-plugin-transform-global-system-wrapper@0.0.1",
+  "_shasum": "afb469cec0e04689b9fe7e8b1fd280fc94a6d8f2",
+  "_from": "babel-plugin-transform-global-system-wrapper@0.0.1",
+  "_npmVersion": "2.15.8",
+  "_nodeVersion": "4.4.7",
+  "_npmUser": {
+    "name": "asapach",
+    "email": "dreamsonic@tut.by"
+  },
+  "maintainers": [
+    {
+      "name": "asapach",
+      "email": "dreamsonic@tut.by"
+    }
+  ],
+  "dist": {
+    "shasum": "afb469cec0e04689b9fe7e8b1fd280fc94a6d8f2",
+    "tarball": "https://registry.npmjs.org/babel-plugin-transform-global-system-wrapper/-/babel-plugin-transform-global-system-wrapper-0.0.1.tgz"
+  },
+  "_npmOperationalInternal": {
+    "host": "packages-12-west.internal.npmjs.com",
+    "tmp": "tmp/babel-plugin-transform-global-system-wrapper-0.0.1.tgz_1469370560120_0.5240150955505669"
+  },
+  "directories": {},
+  "_resolved": "https://registry.npmjs.org/babel-plugin-transform-global-system-wrapper/-/babel-plugin-transform-global-system-wrapper-0.0.1.tgz",
+  "readme": "ERROR: No README data found!"
+}

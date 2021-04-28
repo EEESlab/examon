@@ -1,0 +1,39 @@
+{
+  /**
+   * adapted from: https://gist.github.com/haschek/2595796
+   */
+
+  "curly": true,
+  // Require {} for every new block or scope.
+  "eqeqeq": true,
+  // Require triple equals i.e. `===`.
+  "latedef": true,
+  // Prohibit variable use before definition.
+  "newcap": true,
+  // Require capitalization of all constructor functions e.g. `new F()`.
+  "noarg": true,
+  // Prohibit use of `arguments.caller` and `arguments.callee`.
+  "noempty": true,
+  // Prohibit use of empty blocks.
+  "nonew": true,
+  // Prohibit use of constructors for side-effects.
+  "plusplus": true,
+  // Prohibit use of `++` & `--`.
+  "undef": true,
+  // Require all non-global variables be declared before they are used.
+  "strict": true,
+  // Require `use strict` pragma in every file.
+  "trailing": true,
+  // Prohibit trailing whitespaces.
+  "unused": true,
+  //This option warns when you define and never use your variables
+
+  "validthis": true,
+  // Tolerate strict violations when the code is running in strict mode and you use this in a non-constructor function.
+
+  "globals": {
+    "require": false,
+    "module": false,
+    "exports": false
+  }
+}

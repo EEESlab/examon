@@ -1,0 +1,1 @@
+FROM cassandra:3.0.19
