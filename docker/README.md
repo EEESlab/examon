@@ -6,7 +6,7 @@ This setup will install all server-side components of the ExaMon framework:
  - KairosDB
  - Cassandra
 
-## Prerequisities
+## Prerequisites
 Since Cassandra is the component that requires the majority of resources, you can find more details about the suggested hardware configuration of the system that will host the services here:
 
 [Hardware Configuration](https://cassandra.apache.org/doc/latest/operating/hardware.html#:~:text=While%20Cassandra%20can%20be%20made,at%20least%2032GB%20of%20RAM)
