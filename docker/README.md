@@ -43,7 +43,7 @@ Log in to the Grafana server using your browser and the default credentials:
 
 http://localhost:3000
 
-Follow the normal procedure for adding a new data source:
+Follow the normal procedure for adding a new data source (KairosDB):
 
 [Add a Datasource](https://grafana.com/docs/grafana/latest/datasources/add-a-data-source/)
 
