@@ -43,10 +43,11 @@
 static struct {
 	int compact;
 	int sort;
-	int encode;
-	int combo;
-	int combo_lim;
-	int desc;
+	uint8_t encode;
+	uint8_t combo;
+	uint8_t combo_lim;
+	uint8_t name_only;
+	uint8_t desc;
 	char *csv_sep;
 	pfm_event_info_t efilter;
 	pfm_event_attr_info_t ufilter;
@@ -304,6 +305,12 @@ show_event_info_compact(pfm_event_info_t *info)
 	if (ret != PFM_SUCCESS)
 		errx(1, "cannot get pmu info: %s", pfm_strerror(ret));
 
+	if (options.name_only) {
+		if (options.encode)
+			printf("0x%-10"PRIx64, info->code);
+		printf("%s\n", info->name);
+		return;
+	}
 	pfm_for_each_event_attr(i, info) {
 		ret = pfm_get_event_attr_info(info->idx, i, options.os, &ainfo);
 		if (ret != PFM_SUCCESS)
@@ -369,11 +376,23 @@ static void
 print_event_flags(pfm_event_info_t *info)
 {
 	int n = 0;
+	int spec = info->is_speculative;
 
 	if (info->is_precise) {
 		printf("[precise] ");
 		n++;
 	}
+
+	if (info->support_hw_smpl) {
+		printf("[hw_smpl] ");
+		n++;
+	}
+
+	if (spec > PFM_EVENT_INFO_SPEC_NA) {
+		printf("[%s] ", spec == PFM_EVENT_INFO_SPEC_TRUE ? "speculative" : "non-speculative");
+		n++;
+	}
+
 	if (!n)
 		printf("None");
 }
@@ -382,6 +401,7 @@ static void
 print_attr_flags(pfm_event_attr_info_t *info)
 {
 	int n = 0;
+	int spec = info->is_speculative;
 
 	if (info->is_dfl) {
 		printf("[default] ");
@@ -390,6 +410,16 @@ print_attr_flags(pfm_event_attr_info_t *info)
 
 	if (info->is_precise) {
 		printf("[precise] ");
+		n++;
+	}
+
+	if (info->support_hw_smpl) {
+		printf("[hw_smpl] ");
+		n++;
+	}
+
+	if (spec > PFM_EVENT_INFO_SPEC_NA) {
+		printf("[%s] ", spec == PFM_EVENT_INFO_SPEC_TRUE ? "speculative" : "non-speculative");
 		n++;
 	}
 
@@ -406,6 +436,11 @@ show_event_info(pfm_event_info_t *info)
 	int mod = 0, um = 0;
 	int i, ret;
 	const char *src;
+
+	if (options.name_only) {
+		printf("%s\n", info->name);
+		return;
+	}
 
 	memset(&ainfo, 0, sizeof(ainfo));
 	memset(&pinfo, 0, sizeof(pinfo));
@@ -490,7 +525,8 @@ show_info(char *event, regex_t *preg)
 {
 	pfm_pmu_info_t pinfo;
 	pfm_event_info_t info;
-	int i, j, ret, match = 0, pname;
+	pfm_pmu_t j;
+	int i, ret, match = 0, pname;
 	size_t len, l = 0;
 	char *fullname = NULL;
 
@@ -531,7 +567,7 @@ show_info(char *event, regex_t *preg)
 			sprintf(fullname, "%s::%s", pinfo.name, info.name);
 
 			if (regexec(preg, fullname, 0, NULL, 0) == 0) {
-				if (options.compact)
+				 if (options.compact)
 					if (options.combo)
 						show_event_info_combo(&info);
 					else
@@ -553,7 +589,7 @@ show_info_sorted(char *event, regex_t *preg)
 {
 	pfm_pmu_info_t pinfo;
 	pfm_event_info_t info;
-	unsigned int j;
+	pfm_pmu_t j;
 	int i, ret, n, match = 0;
 	size_t len, l = 0;
 	char *fullname = NULL;
@@ -769,7 +805,8 @@ main(int argc, char **argv)
 	char default_sep[2] = "\t";
 	char *ostr = NULL;
 	char **args;
-	int i, match;
+	pfm_pmu_t i;
+	int match;
 	regex_t preg;
 	int ret, c;
 
@@ -777,7 +814,7 @@ main(int argc, char **argv)
 
 	pinfo.size = sizeof(pinfo);
 
-	while ((c=getopt(argc, argv,"hELsm:Ml:F:x:DO:")) != -1) {
+	while ((c=getopt(argc, argv,"hELsm:MNl:F:x:DO:")) != -1) {
 		switch(c) {
 			case 'L':
 				options.compact = 1;
@@ -791,6 +828,9 @@ main(int argc, char **argv)
 				break;
 			case 'M':
 				options.combo = 1;
+				break;
+			case 'N':
+				options.name_only = 1;
 				break;
 			case 's':
 				options.sort = 1;

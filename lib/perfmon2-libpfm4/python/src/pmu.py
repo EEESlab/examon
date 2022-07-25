@@ -21,12 +21,13 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 
+from __future__ import print_function
 import os
 from perfmon import *
 
 def public_members(self):
     s = "{ "
-    for k, v in self.__dict__.iteritems():
+    for k, v in self.__dict__.items():
       if not k[0] == '_':
         s += "%s : %s, " % (k, v)
     s += " }"
@@ -94,8 +95,8 @@ if __name__ == '__main__':
   for pmu in s.pmus:
     info = pmu.info
     if info.flags.is_present:
-      print info.name, info.size, info.nevents
+      print(info.name, info.size, info.nevents)
       for e in pmu.events():
-        print e.info.name, e.info.code
+        print(e.info.name, e.info.code)
         for a in e.attrs():
-	  print '\t\t', a.name, a.code
+          print('\t\t', a.name, a.code)

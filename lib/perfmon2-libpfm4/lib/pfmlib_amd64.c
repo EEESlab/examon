@@ -173,25 +173,25 @@ amd64_get_revision(pfm_amd64_config_t *cfg)
                 }
 	} else if (cfg->family == 21) { /* family 15h */
 		rev = PFM_PMU_AMD64_FAM15H_INTERLAGOS;
+	} else if (cfg->family == 23) { /* family 17h */
+                switch (cfg->model) {
+                case 49:
+			rev = PFM_PMU_AMD64_FAM17H_ZEN2;
+			break;
+                default:
+                        rev = PFM_PMU_AMD64_FAM17H_ZEN1;
+                }
+	} else if (cfg->family == 22) { /* family 16h */
+		rev = PFM_PMU_AMD64_FAM16H;
 	}
+
         cfg->revision = rev;
 }
 
-/*
- * .byte 0x53 == push ebx. it's universal for 32 and 64 bit
- * .byte 0x5b == pop ebx.
- * Some gcc's (4.1.2 on Core2) object to pairing push/pop and ebx in 64 bit mode.
- * Using the opcode directly avoids this problem.
- */
 static inline void
 cpuid(unsigned int op, unsigned int *a, unsigned int *b, unsigned int *c, unsigned int *d)
 {
-  __asm__ __volatile__ (".byte 0x53\n\tcpuid\n\tmovl %%ebx, %%esi\n\t.byte 0x5b"
-       : "=a" (*a),
-	     "=S" (*b),
-		 "=c" (*c),
-		 "=d" (*d)
-       : "a" (op));
+	asm volatile("cpuid" : "=a" (*a), "=b" (*b), "=c" (*c), "=d" (*d) : "a" (op) : "memory");
 }
 
 static int
@@ -426,7 +426,7 @@ pfm_amd64_get_encoding(void *this, pfmlib_event_desc_t *e)
 {
 	const amd64_entry_t *pe = this_pe(this);
 	pfm_amd64_reg_t reg;
-	pfm_event_attr_info_t *a;
+	pfmlib_event_attr_info_t *a;
 	uint64_t umask = 0;
 	unsigned int plmmsk = 0;
 	int k, ret, grpid;
@@ -661,7 +661,7 @@ pfm_amd64_event_is_valid(void *this, int pidx)
 }
 
 int
-pfm_amd64_get_event_attr_info(void *this, int pidx, int attr_idx, pfm_event_attr_info_t *info)
+pfm_amd64_get_event_attr_info(void *this, int pidx, int attr_idx, pfmlib_event_attr_info_t *info)
 {
 	const amd64_entry_t *pe = this_pe(this);
 	int numasks, idx;

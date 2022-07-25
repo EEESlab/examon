@@ -60,7 +60,7 @@ find_pmu_type_by_name(const char *name)
 static int
 has_ldlat(void *this, pfmlib_event_desc_t *e)
 {
-	pfm_event_attr_info_t *a;
+	pfmlib_event_attr_info_t *a;
 	int i;
 
 	for (i = 0; i < e->nattrs; i++) {
@@ -146,6 +146,15 @@ pfm_intel_x86_get_perf_encoding(void *this, pfmlib_event_desc_t *e)
 			}
 			attr->config1 = e->codes[1];
 		}
+
+		/*
+		 * Event has filters and perf_events expects them in the umask (extended)
+		 * For instance: SK UPI BASIC_HDR_FILT
+		 */
+		if (e->count > 1 && intel_x86_eflag(this, e->event, INTEL_X86_FILT_UMASK)) {
+			attr->config |= e->codes[1] << 32;
+		}
+
 		/*
 		 * Load Latency threshold (NHM/WSM/SNB)
 		 * - codes[0] goes to regular counter config
@@ -217,7 +226,7 @@ pfm_intel_nhm_unc_get_perf_encoding(void *this, pfmlib_event_desc_t *e)
 int
 pfm_intel_x86_requesting_pebs(pfmlib_event_desc_t *e)
 {
-	pfm_event_attr_info_t *a;
+	pfmlib_event_attr_info_t *a;
 	int i;
 
 	for (i = 0; i < e->nattrs; i++) {
@@ -233,7 +242,7 @@ pfm_intel_x86_requesting_pebs(pfmlib_event_desc_t *e)
 static int
 intel_x86_event_has_pebs(void *this, pfmlib_event_desc_t *e)
 {
-	pfm_event_attr_info_t *a;
+	pfmlib_event_attr_info_t *a;
 	int i;
 
 	/* first check at the event level */
@@ -253,6 +262,13 @@ intel_x86_event_has_pebs(void *this, pfmlib_event_desc_t *e)
 	return 0;
 }
 
+static int
+intel_x86_event_has_hws(void *this, pfmlib_event_desc_t *e)
+{
+	pfmlib_pmu_t *pmu = this;
+	return !!(pmu->flags & INTEL_X86_PMU_FL_EXTPEBS);
+}
+
 /*
  * remove attrs which are in conflicts (or duplicated) with os layer
  */
@@ -261,6 +277,7 @@ pfm_intel_x86_perf_validate_pattrs(void *this, pfmlib_event_desc_t *e)
 {
 	pfmlib_pmu_t *pmu = this;
 	int i, compact;
+	int has_hws = intel_x86_event_has_hws(this, e);
 	int has_pebs = intel_x86_event_has_pebs(this, e);
 	int no_smpl = pmu->flags & PFMLIB_PMU_FL_NO_SMPL;
 
@@ -285,6 +302,10 @@ pfm_intel_x86_perf_validate_pattrs(void *this, pfmlib_event_desc_t *e)
 			if (e->pattrs[i].idx == PERF_ATTR_PR && !has_pebs)
 				compact = 1;
 
+			/* hardware sampling mode, subject to HWS or PEBS */
+			if (e->pattrs[i].idx == PERF_ATTR_HWS && (!has_hws || has_pebs))
+				compact = 1;
+
 			/*
 			 * No hypervisor on Intel
 			 */
@@ -298,6 +319,11 @@ pfm_intel_x86_perf_validate_pattrs(void *this, pfmlib_event_desc_t *e)
 				compact = 1;
 			/*
 			 * no priv level support
+			 * We assume that if we do not support hardware plm,
+			 * then the host, guest priv level filtering in not
+			 * supported as well, even though on some arch it is
+			 * achieved by the OS enabling/disabled on VMM entry
+			 * and exit.
 			 */
 			if (pmu->supported_plm == 0
 			    && (   e->pattrs[i].idx == PERF_ATTR_U

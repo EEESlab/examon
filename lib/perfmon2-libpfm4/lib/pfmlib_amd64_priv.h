@@ -125,9 +125,10 @@ extern pfm_amd64_config_t pfm_amd64_cfg;
 
 #define AMD64_K8_ATTRS			(AMD64_BASIC_ATTRS)
 #define AMD64_FAM10H_ATTRS		(AMD64_BASIC_ATTRS|_AMD64_ATTR_H|_AMD64_ATTR_G)
-#define AMD64_FAM12H_ATTRS		(AMD64_BASIC_ATTRS|_AMD64_ATTR_H|_AMD64_ATTR_G)
-#define AMD64_FAM14H_ATTRS		(AMD64_BASIC_ATTRS|_AMD64_ATTR_H|_AMD64_ATTR_G)
-#define AMD64_FAM15H_ATTRS		(AMD64_BASIC_ATTRS|_AMD64_ATTR_H|_AMD64_ATTR_G)
+#define AMD64_FAM12H_ATTRS		AMD64_FAM10H_ATTRS
+#define AMD64_FAM14H_ATTRS		AMD64_FAM10H_ATTRS
+#define AMD64_FAM15H_ATTRS		AMD64_FAM10H_ATTRS
+#define AMD64_FAM17H_ATTRS		AMD64_FAM10H_ATTRS
 
 #define AMD64_FAM10H_PLM	(PFM_PLM0|PFM_PLM3|PFM_PLMH)
 #define AMD64_K7_PLM		(PFM_PLM0|PFM_PLM3)
@@ -202,7 +203,7 @@ extern int pfm_amd64_get_encoding(void *this, pfmlib_event_desc_t *e);
 extern int pfm_amd64_get_event_first(void *this);
 extern int pfm_amd64_get_event_next(void *this, int idx);
 extern int pfm_amd64_event_is_valid(void *this, int idx);
-extern int pfm_amd64_get_event_attr_info(void *this, int idx, int attr_idx, pfm_event_attr_info_t *info);
+extern int pfm_amd64_get_event_attr_info(void *this, int idx, int attr_idx, pfmlib_event_attr_info_t *info);
 extern int pfm_amd64_get_event_info(void *this, int idx, pfm_event_info_t *info);
 extern int pfm_amd64_validate_table(void *this, FILE *fp);
 extern int pfm_amd64_detect(void *this);

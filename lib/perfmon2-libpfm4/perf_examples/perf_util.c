@@ -200,7 +200,7 @@ perf_read_buffer(perf_event_desc_t *hw, void *buf, size_t sz)
 	/*
 	 * data points to beginning of buffer payload
 	 */
-	data = ((void *)hdr)+sysconf(_SC_PAGESIZE);
+	data = (void*)(((uintptr_t)hdr)+sysconf(_SC_PAGESIZE));
 
 	/*
 	 * position of tail within the buffer payload
@@ -234,13 +234,13 @@ perf_read_buffer(perf_event_desc_t *hw, void *buf, size_t sz)
 	m = c < sz ? c : sz;
 
 	/* copy beginning */
-	memcpy(buf, data+tail, m);
+	memcpy(buf, (void*)(((uintptr_t)data)+tail), m);
 
 	/*
 	 * copy wrapped around leftover
 	 */
 	if (sz > m)
-		memcpy(buf+m, data, sz - m);
+		memcpy((void*)(((uintptr_t)buf)+m), data, sz - m);
 
 	//printf("\nhead=%lx tail=%lx new_tail=%lx sz=%zu\n", hdr->data_head, hdr->data_tail, hdr->data_tail+sz, sz);
 	hdr->data_tail += sz;
@@ -328,11 +328,15 @@ perf_display_branch_stack(perf_event_desc_t *desc, FILE *fp)
 		if (ret)
 			errx(1, "cannot read branch stack entry");
 
-		fprintf(fp, "\tFROM:0x%016"PRIx64" TO:0x%016"PRIx64" MISPRED:%c\n",
+		fprintf(fp, "\tFROM:0x%016"PRIx64" TO:0x%016"PRIx64" MISPRED:%c PRED:%c IN_TX:%c ABORT:%c CYCLES:%d type:%d\n",
 			b.from,
 			b.to,
-			!(b.mispred || b.predicted) ? '-':
-			(b.mispred ? 'Y' :'N'));
+			!(b.mispred || b.predicted) ? '-': (b.mispred ? 'Y' :'N'),
+			!(b.mispred || b.predicted) ? '-': (b.predicted? 'Y' :'N'),
+			(b.in_tx? 'Y' :'N'),
+			(b.abort? 'Y' :'N'),
+			b.type,
+			b.cycles);
 	}
 	return (int)(n * sizeof(b) + sizeof(n));
 }

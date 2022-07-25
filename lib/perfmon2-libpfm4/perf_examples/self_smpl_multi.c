@@ -165,7 +165,7 @@ do_cycles(void)
 		gettimeofday(&now, NULL);
 		if (now.tv_sec > last.tv_sec) {
 			printf("%ld: myid = %3d, fd = %3d, count = %4ld, iter = %4ld, rate = %ld/Kiter\n",
-				now.tv_sec - start.tv_sec,
+				(long)(now.tv_sec - start.tv_sec),
 				myid,
 				fd2ov[myid].fd,
 				count[myid], iter[myid],
@@ -278,7 +278,7 @@ overflow_start(char *name)
 
 	fds = NULL;
 	num_fds = 0;
-	ret = perf_setup_list_events("cycles", &fds, &num_fds);
+	ret = perf_setup_list_events("cycles:u", &fds, &num_fds);
 	if (ret || !num_fds)
 		errx(1, "cannot monitor event");
 

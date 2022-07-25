@@ -50,21 +50,10 @@ pfm_intel_x86_config_t pfm_intel_x86_cfg;
 
 #define mdhw(m, u, at) (m & u & _INTEL_X86_##at)
 
-/*
- * .byte 0x53 == push ebx. it's universal for 32 and 64 bit
- * .byte 0x5b == pop ebx.
- * Some gcc's (4.1.2 on Core2) object to pairing push/pop and ebx in 64 bit mode.
- * Using the opcode directly avoids this problem.
- */
 static inline void
 cpuid(unsigned int op, unsigned int *a, unsigned int *b, unsigned int *c, unsigned int *d)
 {
-  __asm__ __volatile__ (".byte 0x53\n\tcpuid\n\tmovl %%ebx, %%esi\n\t.byte 0x5b"
-       : "=a" (*a),
-	     "=S" (*b),
-		 "=c" (*c),
-		 "=d" (*d)
-       : "a" (op));
+	asm volatile("cpuid" : "=a" (*a), "=b" (*b), "=c" (*c), "=d" (*d) : "a" (op) : "memory");
 }
 
 static void
@@ -200,14 +189,15 @@ int
 pfm_intel_x86_add_defaults(void *this, pfmlib_event_desc_t *e,
 			   unsigned int msk,
 			   uint64_t *umask,
-			   unsigned int max_grpid,
+			   unsigned short max_grpid,
 			   int excl_grp_but_0)
 {
 	const intel_x86_entry_t *pe = this_pe(this);
 	const intel_x86_entry_t *ent;
 	unsigned int i;
+	unsigned short grpid;
 	int j, k, added, skip;
-	int idx, grpid;
+	int idx;
 
 	k = e->nattrs;
 	ent = pe+e->event;
@@ -231,7 +221,7 @@ pfm_intel_x86_add_defaults(void *this, pfmlib_event_desc_t *e,
 
 			idx = e->pattrs[j].idx;
 
-			if (ent->umasks[idx].grpid != i)
+			if (get_grpid(ent->umasks[idx].grpid) != i)
 				continue;
 
 			if (max_grpid != INTEL_X86_MAX_GRPID && i > max_grpid) {
@@ -274,7 +264,7 @@ pfm_intel_x86_add_defaults(void *this, pfmlib_event_desc_t *e,
 
 				if (intel_x86_uflag(this, e->event, idx, INTEL_X86_EXCL_GRP_GT)) {
 					if (max_grpid != INTEL_X86_MAX_GRPID) {
-						DPRINT("two max_grpid, old=%d new=%d\n", max_grpid, ent->umasks[idx].grpid);
+						DPRINT("two max_grpid, old=%d new=%d\n", max_grpid, get_grpid(ent->umasks[idx].grpid));
 						return PFM_ERR_UMASK;
 					}
 					max_grpid = ent->umasks[idx].grpid;
@@ -292,18 +282,27 @@ done:
 	return PFM_SUCCESS;
 }
 
+#if 1
+static int
+intel_x86_check_pebs(void *this, pfmlib_event_desc_t *e)
+{
+	return PFM_SUCCESS;
+}
+#else
+/* this routine is supposed to check that umask combination is valid
+ * w.r.t. PEBS. You cannot combine PEBS with non PEBS. But this is
+ * only a problem is PEBS is requested. But this is not known at this
+ * arch level. It is known at the OS interface level. Therefore we
+ * cannot really check this here.
+ * We keep the code around in case we need it later on
+ */
 static int
 intel_x86_check_pebs(void *this, pfmlib_event_desc_t *e)
 {
 	const intel_x86_entry_t *pe = this_pe(this);
-	pfm_event_attr_info_t *a;
+	pfmlib_event_attr_info_t *a;
 	int numasks = 0, pebs = 0;
 	int i;
-
-#if 1
-	if (1) // !intel_x86_requesting_pebs(e))
-		return PFM_SUCCESS;
-#endif
 
 	/*
 	 * if event has no umask and is PEBS, then we are okay
@@ -313,7 +312,7 @@ intel_x86_check_pebs(void *this, pfmlib_event_desc_t *e)
 		return PFM_SUCCESS;
 
 	/*
-	 * if the event sets PEBS, then it measn at least one umask
+	 * if the event sets PEBS, then it means at least one umask
 	 * supports PEBS, so we need to check
 	 */
 	for (i = 0; i < e->nattrs; i++) {
@@ -335,13 +334,15 @@ intel_x86_check_pebs(void *this, pfmlib_event_desc_t *e)
 	 */
 	return pebs != numasks ? PFM_ERR_FEATCOMB : PFM_SUCCESS;
 }
+#endif
 
 static int
-intel_x86_check_max_grpid(void *this, pfmlib_event_desc_t *e, int max_grpid)
+intel_x86_check_max_grpid(void *this, pfmlib_event_desc_t *e, unsigned short max_grpid)
 {
 	const intel_x86_entry_t *pe;
-	pfm_event_attr_info_t *a;
-	int i, grpid;
+	pfmlib_event_attr_info_t *a;
+	unsigned short grpid;
+	int i;
 
 	DPRINT("check: max_grpid=%d\n", max_grpid);
 	pe = this_pe(this);
@@ -366,7 +367,7 @@ pfm_intel_x86_encode_gen(void *this, pfmlib_event_desc_t *e)
 
 {
 	pfmlib_pmu_t *pmu = this;
-	pfm_event_attr_info_t *a;
+	pfmlib_event_attr_info_t *a;
 	const intel_x86_entry_t *pe;
 	pfm_intel_x86_reg_t reg, reg2;
 	unsigned int grpmsk, ugrpmsk = 0;
@@ -375,13 +376,16 @@ pfm_intel_x86_encode_gen(void *this, pfmlib_event_desc_t *e)
 	unsigned int plmmsk = 0;
 	int umodmsk = 0, modmsk_r = 0;
 	int k, ret, id;
-	unsigned int max_grpid = INTEL_X86_MAX_GRPID;
-	unsigned int last_grpid =  INTEL_X86_MAX_GRPID;
-	unsigned int grpid;
-	int ldlat = 0, ldlat_um = 0;
-	int fe_thr= 0, fe_thr_um = 0;
+	int max_req_grpid = -1;
+	unsigned short grpid;
+	unsigned short max_grpid = INTEL_X86_MAX_GRPID;
+	unsigned short last_grpid =  INTEL_X86_MAX_GRPID;
+	unsigned short req_grpid;
+	unsigned int ldlat = 0, ldlat_um = 0;
+	unsigned int fe_thr= 0, fe_thr_um = 0;
 	int excl_grp_but_0 = -1;
 	int grpcounts[INTEL_X86_NUM_GRP];
+	int req_grps[INTEL_X86_NUM_GRP];
 	int ncombo[INTEL_X86_NUM_GRP];
 
 	memset(grpcounts, 0, sizeof(grpcounts));
@@ -412,7 +416,8 @@ pfm_intel_x86_encode_gen(void *this, pfmlib_event_desc_t *e)
 			continue;
 
 		if (a->type == PFM_ATTR_UMASK) {
-			grpid = pe[e->event].umasks[a->idx].grpid;
+			grpid     = get_grpid(pe[e->event].umasks[a->idx].grpid);
+			req_grpid = get_req_grpid(pe[e->event].umasks[a->idx].grpid);
 
 			/*
 			 * certain event groups are meant to be
@@ -444,6 +449,19 @@ pfm_intel_x86_encode_gen(void *this, pfmlib_event_desc_t *e)
 			 * umask group
 			 */
 			++grpcounts[grpid];
+			if (intel_x86_uflag(this, e->event, a->idx, INTEL_X86_GRP_REQ)) {
+				DPRINT("event requires grpid %d\n", req_grpid);
+				/* initialize req_grpcounts array only when needed */
+				if (max_req_grpid == -1) {
+					int x;
+					for (x = 0; x < INTEL_X86_NUM_GRP; x++)
+						req_grps[x] = 0xff;
+				}
+				if (req_grpid > max_req_grpid)
+					max_req_grpid = req_grpid;
+				DPRINT("max_req_grpid=%d\n", max_req_grpid);
+				req_grps[req_grpid] = 1;
+			}
 
 			/* mark that we have a umask with NCOMBO in this group */
 			if (intel_x86_uflag(this, e->event, a->idx, INTEL_X86_NCOMBO))
@@ -454,6 +472,7 @@ pfm_intel_x86_encode_gen(void *this, pfmlib_event_desc_t *e)
 
 			if (intel_x86_uflag(this, e->event, a->idx, INTEL_X86_FETHR))
 				fe_thr_um = 1;
+
 			/*
 			 * if more than one umask in this group but one is marked
 			 * with ncombo, then fail. It is okay to combine umask within
@@ -464,7 +483,7 @@ pfm_intel_x86_encode_gen(void *this, pfmlib_event_desc_t *e)
 				return PFM_ERR_FEATCOMB;
 			}
 
-			last_grpid = grpid;
+			last_grpid= grpid;
 			ucode     = pe[e->event].umasks[a->idx].ucode;
 			modhw    |= pe[e->event].umasks[a->idx].modhw;
 			umask2   |= ucode >> 8;
@@ -481,17 +500,23 @@ pfm_intel_x86_encode_gen(void *this, pfmlib_event_desc_t *e)
 				reg.sel_event_select = last_ucode;
 			}
 		} else if (a->type == PFM_ATTR_RAW_UMASK) {
+			int ofr_bits = 8;
 			uint64_t rmask;
-			/* there can only be one RAW_UMASK per event */
+
+			/* set limit on width of raw umask */
 			if (intel_x86_eflag(this, e->event, INTEL_X86_NHM_OFFCORE)) {
-				rmask = (1ULL << 38) - 1;
-			} else {
-				rmask = 0xff;
+				ofr_bits = 38;
+				if (e->pmu->pmu == PFM_PMU_INTEL_WSM || e->pmu->pmu == PFM_PMU_INTEL_WSM_DP)
+					ofr_bits = 16;
 			}
+			rmask = (1ULL << ofr_bits) - 1;
+
 			if (a->idx & ~rmask) {
-				DPRINT("raw umask is too wide\n");
+				DPRINT("raw umask is too wide max %d bits\n", ofr_bits);
 				return PFM_ERR_ATTR;
 			}
+
+			/* override umask */
 			umask2  = a->idx & rmask;
 			ugrpmsk = grpmsk;
 		} else {
@@ -542,10 +567,24 @@ pfm_intel_x86_encode_gen(void *this, pfmlib_event_desc_t *e)
 					if (ival < 1 || ival > 4095)
 						return PFM_ERR_ATTR_VAL;
 					fe_thr = ival;
+					umodmsk |= _INTEL_X86_ATTR_FETHR;
 					break;
 			}
 		}
 	}
+	/* check required groups are in place */
+	if (max_req_grpid != -1) {
+		int x;
+		for (x = 0; x <= max_req_grpid; x++) {
+			if (req_grps[x] == 0xff)
+				continue;
+			if ((ugrpmsk & (1 << x)) == 0) {
+				DPRINT("required grpid %d umask missing\n", x);
+				return PFM_ERR_FEATCOMB;
+			}
+		}
+	}
+
 	/*
 	 * we need to wait until all the attributes have been parsed to check
 	 * for conflicts between hardcoded attributes and user-provided attributes.
@@ -644,20 +683,26 @@ pfm_intel_x86_encode_gen(void *this, pfmlib_event_desc_t *e)
 			evt_strcat(e->fstr, ":0x%x", a->idx);
 	}
 
-	if (fe_thr_um && !fe_thr) {
-		/* try extracting te latency threshold from the event umask first */
-		fe_thr = (umask2 >> 8) & 0x7;
-		/* if not in the umask ,then use default */
-		if (!fe_thr) {
-			DPRINT("missing fe_thres= for umask, forcing to default %d cycles\n", INTEL_X86_FETHR_DEFAULT);
-			fe_thr = INTEL_X86_FETHR_DEFAULT;
+	if (intel_x86_eflag(this, e->event, INTEL_X86_FRONTEND)) {
+		uint64_t um_thr = (umask2 >> 8) & 0xfff; /* threshold from umask */
+
+		DPRINT("um_thr=0x%"PRIx64 " fe_thr=%u thr_um=%u modhw=0x%x umodhw=0x%x\n", um_thr, fe_thr, fe_thr_um, modhw, umodmsk);
+		/* umask expects a fe_thres modifier */
+		if (fe_thr_um) {
+			/* hardware has non zero fe_thres (hardcoded) */
+			if (um_thr) {
+				/* user passed fe_thres, then must match hardcoded */
+				if (mdhw(modhw, umodmsk, ATTR_FETHR)) {
+					if (fe_thr != um_thr)
+						return PFM_ERR_ATTR_SET;
+				} else
+					fe_thr = um_thr;
+			} else if (fe_thr == 0) {
+				fe_thr = INTEL_X86_FETHR_DEFAULT;
+			}
+			umask2 &= ~((0xfffULL) << 8);
+			umask2 |= fe_thr << 8;
 		}
-	}
-	/*
-	 * encode threshold in final position in extra register
-	 */
-	if (fe_thr && fe_thr_um) {
-		umask2 |= fe_thr << 8;
 	}
 
 	/*
@@ -772,8 +817,12 @@ int
 pfm_intel_x86_get_event_first(void *this)
 {
 	pfmlib_pmu_t *p = this;
+	int idx = 0;
 
-	return p->pme_count ? 0 : -1;
+	/* skip event for different models */
+	while (idx < p->pme_count && !is_model_event(this, idx)) idx++;
+
+	return idx < p->pme_count ? idx : -1;
 }
 
 int
@@ -781,17 +830,22 @@ pfm_intel_x86_get_event_next(void *this, int idx)
 {
 	pfmlib_pmu_t *p = this;
 
+	/* pme_count is always >= 1*/
 	if (idx >= (p->pme_count-1))
 		return -1;
 
-	return idx+1;
+	idx++;
+	/* skip event for different models */
+	while (idx < p->pme_count && !is_model_event(this, idx)) idx++;
+
+	return idx < p->pme_count ? idx : -1;
 }
 
 int
 pfm_intel_x86_event_is_valid(void *this, int pidx)
 {
 	pfmlib_pmu_t *p = this;
-	return pidx >= 0 && pidx < p->pme_count;
+	return pidx >= 0 && pidx < p->pme_count && is_model_event(this, pidx);
 }
 
 int
@@ -816,6 +870,9 @@ pfm_intel_x86_validate_table(void *this, FILE *fp)
 
 	for(i=0; i < pmu->pme_count; i++) {
 
+		if (!is_model_event(this, i))
+			continue;
+
 		if (!pe[i].name) {
 			fprintf(fp, "pmu: %s event%d: :: no name (prev event was %s)\n", pmu->name, i,
 			i > 1 ? pe[i-1].name : "??");
@@ -826,7 +883,10 @@ pfm_intel_x86_validate_table(void *this, FILE *fp)
 			fprintf(fp, "pmu: %s event%d: %s :: no description\n", pmu->name, i, pe[i].name);
 			error++;
 		}
-
+		if (pe[i].desc && strlen(pe[i].desc) == 0) {
+			fprintf(fp, "pmu: %s event%d: %s :: empty description\n", pmu->name, i, pe[i].name);
+			error++;
+		}
 		if (!pe[i].cntmsk) {
 			fprintf(fp, "pmu: %s event%d: %s :: cntmsk=0\n", pmu->name, i, pe[i].name);
 			error++;
@@ -856,9 +916,13 @@ pfm_intel_x86_validate_table(void *this, FILE *fp)
 			fprintf(fp, "pmu: %s event%d: %s :: ngrp too big (max=%d)\n", pmu->name, i, pe[i].name, INTEL_X86_NUM_GRP);
 			error++;
 		}
+		if (pe[i].model >= PFM_PMU_MAX) {
+			fprintf(fp, "pmu: %s event%d: %s :: model too big (max=%d)\n", pmu->name, i, pe[i].name, PFM_PMU_MAX);
+			error++;
+		}
 
 		for (j=i+1; j < (int)pmu->pme_count; j++) {
-			if (pe[i].code == pe[j].code && !(pe[j].equiv || pe[i].equiv) && pe[j].cntmsk == pe[i].cntmsk) {
+			if (pe[i].code == pe[j].code && pe[i].model == pe[j].model && !(pe[j].equiv || pe[i].equiv) && pe[j].cntmsk == pe[i].cntmsk) {
 				fprintf(fp, "pmu: %s events %s and %s have the same code 0x%x\n", pmu->name, pe[i].name, pe[j].name, pe[i].code);
 				error++;
 				}
@@ -882,9 +946,20 @@ pfm_intel_x86_validate_table(void *this, FILE *fp)
 				fprintf(fp, "pmu: %s event%d: umask%d: %s :: no description\n", pmu->name, i, j, pe[i].umasks[j].uname);
 				error++;
 			}
-
-			if (pe[i].ngrp && pe[i].umasks[j].grpid >= pe[i].ngrp) {
-				fprintf(fp, "pmu: %s event%d: %s umask%d: %s :: invalid grpid %d (must be < %d)\n", pmu->name, i, pe[i].name, j, pe[i].umasks[j].uname, pe[i].umasks[j].grpid, pe[i].ngrp);
+			if (pe[i].umasks[j].udesc && strlen(pe[i].umasks[j].udesc) == 0) {
+				fprintf(fp, "pmu: %s event%d: umask%d: %s :: empty description\n", pmu->name, i, j, pe[i].umasks[j].uname);
+				error++;
+			}
+			if (pe[i].ngrp && get_grpid(pe[i].umasks[j].grpid) >= pe[i].ngrp) {
+				fprintf(fp, "pmu: %s event%d: %s umask%d: %s :: invalid grpid %d (must be < %d)\n", pmu->name, i, pe[i].name, j, pe[i].umasks[j].uname, get_grpid(pe[i].umasks[j].grpid), pe[i].ngrp);
+				error++;
+			}
+			if (pe[i].ngrp && get_req_grpid(pe[i].umasks[j].grpid) >= pe[i].ngrp) {
+				fprintf(fp, "pmu: %s event%d: %s umask%d: %s :: invalid req_grpid %d (must be < %d)\n", pmu->name, i, pe[i].name, j, pe[i].umasks[j].uname, get_req_grpid(pe[i].umasks[j].grpid), pe[i].ngrp);
+				error++;
+			}
+				if (pe[i].umasks[j].umodel >= PFM_PMU_MAX) {
+				fprintf(fp, "pmu: %s event%d: %s umask%d: %s :: model too big (max=%d)\n", pmu->name, i, pe[i].name,  j, pe[i].umasks[j].uname, PFM_PMU_MAX);
 				error++;
 			}
 			if (pe[i].umasks[j].uflags & INTEL_X86_DFL)
@@ -895,18 +970,18 @@ pfm_intel_x86_validate_table(void *this, FILE *fp)
 		}
 
 		if (npebs && !intel_x86_eflag(this, i, INTEL_X86_PEBS)) {
-			fprintf(fp, "pmu: %s event%d: %s, pebs umasks but event pebs flag not set\n", pmu->name, i, pe[i].name);
+			fprintf(fp, "pmu: %s event%d: %s, pebs umasks but event pebs flag is not set\n", pmu->name, i, pe[i].name);
 			error++;
 		}
 
 		if (intel_x86_eflag(this, i, INTEL_X86_PEBS) && pe[i].numasks && npebs == 0) {
-			fprintf(fp, "pmu: %s event%d: %s, pebs event flag but not umask has pebs flag\n", pmu->name, i, pe[i].name);
+			fprintf(fp, "pmu: %s event%d: %s, pebs event flag but no umask has the pebs flag\n", pmu->name, i, pe[i].name);
 			error++;
 		}
 
 		/* if only one umask, then ought to be default */
 		if (pe[i].numasks == 1 && !(pe[i].umasks[0].uflags & INTEL_X86_DFL)) {
-			fprintf(fp, "pmu: %s event%d: %s, only one umask but no default\n", pmu->name, i, pe[i].name);
+			fprintf(fp, "pmu: %s event%d: %s, only one umask but no default set\n", pmu->name, i, pe[i].name);
 			error++;
 		}
 
@@ -936,7 +1011,7 @@ pfm_intel_x86_validate_table(void *this, FILE *fp)
 skip_dfl:
 
 		if (pe[i].flags & INTEL_X86_NCOMBO) {
-			fprintf(fp, "pmu: %s event%d: %s :: NCOMBO is unit mask only flag\n", pmu->name, i, pe[i].name);
+			fprintf(fp, "pmu: %s event%d: %s :: NCOMBO is a umask only flag\n", pmu->name, i, pe[i].name);
 			error++;
 		}
 
@@ -966,14 +1041,22 @@ skip_dfl:
 }
 
 int
-pfm_intel_x86_get_event_attr_info(void *this, int pidx, int attr_idx, pfm_event_attr_info_t *info)
+pfm_intel_x86_get_event_attr_info(void *this, int pidx, int attr_idx, pfmlib_event_attr_info_t *info)
 {
 	const intel_x86_entry_t *pe = this_pe(this);
 	const pfmlib_attr_desc_t *atdesc = this_atdesc(this);
+	pfmlib_pmu_t *pmu = this;
 	int numasks, idx;
+
+	if (!is_model_event(this, pidx)) {
+		DPRINT("invalid event index %d\n", pidx);
+		return PFM_ERR_INVAL;
+	}
 
 	numasks = intel_x86_num_umasks(this, pidx);
 	if (attr_idx < numasks) {
+		int has_extpebs = pmu->flags & INTEL_X86_PMU_FL_EXTPEBS;
+
 		idx = intel_x86_attr2umask(this, pidx, attr_idx);
 		info->name = pe[pidx].umasks[idx].uname;
 		info->desc = pe[pidx].umasks[idx].udesc;
@@ -986,6 +1069,24 @@ pfm_intel_x86_get_event_attr_info(void *this, int pidx, int attr_idx, pfm_event_
 		info->type = PFM_ATTR_UMASK;
 		info->is_dfl = intel_x86_uflag(this, pidx, idx, INTEL_X86_DFL);
 		info->is_precise = intel_x86_uflag(this, pidx, idx, INTEL_X86_PEBS);
+		/*
+		 * if PEBS is supported, then hw buffer sampling is also supported
+		 * because PEBS is a hw buffer
+		 */
+		info->support_hw_smpl = (info->is_precise || has_extpebs);
+		/*
+		 * On Intel X86, either all or none of the umasks are speculative
+		 * for a speculative event, so propagate speculation info to all
+		 * umasks
+		 */
+		if (pmu->flags & PFMLIB_PMU_FL_SPEC) {
+			int ret = intel_x86_eflag(this, pidx, INTEL_X86_SPEC);
+			if (ret)
+				info->is_speculative = PFM_EVENT_INFO_SPEC_TRUE;
+			else
+				info->is_speculative = PFM_EVENT_INFO_SPEC_FALSE;
+		} else
+			info->is_speculative = PFM_EVENT_INFO_SPEC_NA;
 	} else {
 		idx = intel_x86_attr2mod(this, pidx, attr_idx);
 		info->name = atdesc[idx].name;
@@ -995,6 +1096,8 @@ pfm_intel_x86_get_event_attr_info(void *this, int pidx, int attr_idx, pfm_event_
 		info->code = idx;
 		info->is_dfl = 0;
 		info->is_precise = 0;
+		info->is_speculative = PFM_EVENT_INFO_SPEC_NA;
+		info->support_hw_smpl = 0;
 	}
 
 	info->ctrl = PFM_ATTR_CTRL_PMU;
@@ -1009,6 +1112,12 @@ pfm_intel_x86_get_event_info(void *this, int idx, pfm_event_info_t *info)
 {
 	const intel_x86_entry_t *pe = this_pe(this);
 	pfmlib_pmu_t *pmu = this;
+	int has_extpebs = pmu->flags & INTEL_X86_PMU_FL_EXTPEBS;
+
+	if (!is_model_event(this, idx)) {
+		DPRINT("invalid event index %d\n", idx);
+		return PFM_ERR_INVAL;
+	}
 
 	info->name  = pe[idx].name;
 	info->desc  = pe[idx].desc;
@@ -1021,6 +1130,25 @@ pfm_intel_x86_get_event_info(void *this, int idx, pfm_event_info_t *info)
 	 * with umasks: at least one umask supports PEBS
 	 */
 	info->is_precise = intel_x86_eflag(this, idx, INTEL_X86_PEBS);
+	/*
+	 * if PEBS is supported, then hw buffer sampling is also supported
+	 * because PEBS is a hw buffer
+	 *
+	 * if the PMU supports ExtendedPEBS, then all events can be
+	 * recorded using the PEBS buffer. They will all benefit from
+	 * the sampling buffer feature. They will not all become precise.
+	 * Only the precise at-retirement events will be skidless. Though
+	 * by construction PEBS also limits the skid for all events.
+	 */
+	info->support_hw_smpl = (info->is_precise || has_extpebs);
+
+	if (pmu->flags & PFMLIB_PMU_FL_SPEC) {
+		int ret = intel_x86_eflag(this, idx, INTEL_X86_SPEC);
+		if (ret)
+			info->is_speculative = PFM_EVENT_INFO_SPEC_TRUE;
+		else
+			info->is_speculative = PFM_EVENT_INFO_SPEC_FALSE;
+	}
 
 	info->nattrs  = intel_x86_num_umasks(this, idx);
 	info->nattrs += intel_x86_num_mods(this, idx);
@@ -1031,7 +1159,7 @@ pfm_intel_x86_get_event_info(void *this, int idx, pfm_event_info_t *info)
 int
 pfm_intel_x86_valid_pebs(pfmlib_event_desc_t *e)
 {
-	pfm_event_attr_info_t *a;
+	pfmlib_event_attr_info_t *a;
 	int i, npebs = 0, numasks = 0;
 
 	/* first check at the event level */
@@ -1082,4 +1210,30 @@ pfm_intel_x86_can_auto_encode(void *this, int pidx, int uidx)
 		return 0;
 
 	return !intel_x86_uflag(this, pidx, uidx, INTEL_X86_NO_AUTOENCODE);
+}
+
+static int
+intel_x86_event_valid(void *this, int i)
+{
+	const intel_x86_entry_t *pe = this_pe(this);
+	pfmlib_pmu_t *pmu = this;
+
+        return pe[i].model == 0 || pe[i].model == pmu->pmu;
+}
+
+int
+pfm_intel_x86_get_num_events(void *this)
+{
+	pfmlib_pmu_t *pmu = this;
+	int i, num = 0;
+
+	/*
+	 * count actual number of events for specific PMU.
+	 * Table may contain more events for the family than
+	 * what a specific model actually supports.
+	 */
+	for (i = 0; i < pmu->pme_count; i++)
+		if (intel_x86_event_valid(this, i))
+			num++;
+	return num;
 }

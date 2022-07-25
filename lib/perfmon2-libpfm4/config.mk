@@ -110,13 +110,13 @@ endif
 # Library version
 #
 VERSION=4
-REVISION=8
-AGE=0
+REVISION=10
+AGE=1
 
 #
 # Where should things (lib, headers, man) go in the end.
 #
-PREFIX=/usr/local
+PREFIX?=/usr/local
 LIBDIR=$(PREFIX)/lib
 INCDIR=$(PREFIX)/include
 MANDIR=$(PREFIX)/share/man

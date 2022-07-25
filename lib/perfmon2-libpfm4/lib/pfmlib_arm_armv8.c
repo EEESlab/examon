@@ -33,6 +33,26 @@
 #include "events/arm_cortex_a57_events.h"    /* A57 event tables */
 #include "events/arm_cortex_a53_events.h"    /* A53 event tables */
 #include "events/arm_xgene_events.h"         /* Applied Micro X-Gene tables */
+#include "events/arm_cavium_tx2_events.h"    	/* Marvell ThunderX2 tables */
+#include "events/arm_marvell_tx2_unc_events.h" 	/* Marvell ThunderX2 PMU tables */
+#include "events/arm_fujitsu_a64fx_events.h"	/* Fujitsu A64FX PMU tables */
+#include "events/arm_neoverse_n1_events.h"	/* ARM Neoverse N1 table */
+
+static int
+pfm_arm_detect_n1(void *this)
+{
+	int ret;
+
+	ret = pfm_arm_detect(this);
+	if (ret != PFM_SUCCESS)
+		return PFM_ERR_NOTSUPP;
+
+	if ((pfm_arm_cfg.implementer == 0x41) && /* ARM */
+		(pfm_arm_cfg.part == 0xd0c)) { /* Neoverse N1 */
+			return PFM_SUCCESS;
+	}
+	return PFM_ERR_NOTSUPP;
+}
 
 static int
 pfm_arm_detect_cortex_a57(void *this)
@@ -82,6 +102,42 @@ pfm_arm_detect_xgene(void *this)
 	return PFM_ERR_NOTSUPP;
 }
 
+static int
+pfm_arm_detect_thunderx2(void *this)
+{
+	int ret;
+
+	ret = pfm_arm_detect(this);
+	if (ret != PFM_SUCCESS)
+		return PFM_ERR_NOTSUPP;
+
+	if ((pfm_arm_cfg.implementer == 0x42) && /* Broadcom */
+		(pfm_arm_cfg.part == 0x516)) { /* Thunder2x */
+			return PFM_SUCCESS;
+	}
+	if ((pfm_arm_cfg.implementer == 0x43) && /* Cavium */
+		(pfm_arm_cfg.part == 0xaf)) { /* Thunder2x */
+			return PFM_SUCCESS;
+	}
+	return PFM_ERR_NOTSUPP;
+}
+
+static int
+pfm_arm_detect_a64fx(void *this)
+{
+	int ret;
+
+	ret = pfm_arm_detect(this);
+	if (ret != PFM_SUCCESS)
+		return PFM_ERR_NOTSUPP;
+
+	if ((pfm_arm_cfg.implementer == 0x46) && /* Fujitsu */
+		(pfm_arm_cfg.part == 0x001)) { /* a64fx */
+			return PFM_SUCCESS;
+	}
+	return PFM_ERR_NOTSUPP;
+}
+
 /* ARM Cortex A57 support */
 pfmlib_pmu_t arm_cortex_a57_support={
 	.desc			= "ARM Cortex A57",
@@ -89,6 +145,7 @@ pfmlib_pmu_t arm_cortex_a57_support={
 	.pmu			= PFM_PMU_ARM_CORTEX_A57,
 	.pme_count		= LIBPFM_ARRAY_SIZE(arm_cortex_a57_pe),
 	.type			= PFM_PMU_TYPE_CORE,
+	.supported_plm          = ARMV8_PLM,
 	.pe			= arm_cortex_a57_pe,
 
 	.pmu_detect		= pfm_arm_detect_cortex_a57,
@@ -114,6 +171,7 @@ pfmlib_pmu_t arm_cortex_a53_support={
 	.pmu			= PFM_PMU_ARM_CORTEX_A53,
 	.pme_count		= LIBPFM_ARRAY_SIZE(arm_cortex_a53_pe),
 	.type			= PFM_PMU_TYPE_CORE,
+	.supported_plm          = ARMV8_PLM,
 	.pe			= arm_cortex_a53_pe,
 
 	.pmu_detect		= pfm_arm_detect_cortex_a53,
@@ -139,11 +197,172 @@ pfmlib_pmu_t arm_xgene_support={
 	.pmu			= PFM_PMU_ARM_XGENE,
 	.pme_count		= LIBPFM_ARRAY_SIZE(arm_xgene_pe),
 	.type			= PFM_PMU_TYPE_CORE,
+	.supported_plm          = ARMV8_PLM,
 	.pe			= arm_xgene_pe,
 
 	.pmu_detect		= pfm_arm_detect_xgene,
 	.max_encoding		= 1,
 	.num_cntrs		= 4,
+
+	.get_event_encoding[PFM_OS_NONE] = pfm_arm_get_encoding,
+	 PFMLIB_ENCODE_PERF(pfm_arm_get_perf_encoding),
+	.get_event_first	= pfm_arm_get_event_first,
+	.get_event_next		= pfm_arm_get_event_next,
+	.event_is_valid		= pfm_arm_event_is_valid,
+	.validate_table		= pfm_arm_validate_table,
+	.get_event_info		= pfm_arm_get_event_info,
+	.get_event_attr_info	= pfm_arm_get_event_attr_info,
+	 PFMLIB_VALID_PERF_PATTRS(pfm_arm_perf_validate_pattrs),
+	.get_event_nattrs	= pfm_arm_get_event_nattrs,
+};
+
+/* Marvell ThunderX2 support */
+pfmlib_pmu_t arm_thunderx2_support={
+	.desc			= "Cavium ThunderX2",
+	.name			= "arm_thunderx2",
+	.pmu			= PFM_PMU_ARM_THUNDERX2,
+	.pme_count		= LIBPFM_ARRAY_SIZE(arm_thunderx2_pe),
+	.type			= PFM_PMU_TYPE_CORE,
+	.supported_plm          = ARMV8_PLM,
+	.pe			= arm_thunderx2_pe,
+
+	.pmu_detect		= pfm_arm_detect_thunderx2,
+	.max_encoding		= 1,
+	.num_cntrs		= 6,
+
+	.get_event_encoding[PFM_OS_NONE] = pfm_arm_get_encoding,
+	 PFMLIB_ENCODE_PERF(pfm_arm_get_perf_encoding),
+	.get_event_first	= pfm_arm_get_event_first,
+	.get_event_next		= pfm_arm_get_event_next,
+	.event_is_valid		= pfm_arm_event_is_valid,
+	.validate_table		= pfm_arm_validate_table,
+	.get_event_info		= pfm_arm_get_event_info,
+	.get_event_attr_info	= pfm_arm_get_event_attr_info,
+	 PFMLIB_VALID_PERF_PATTRS(pfm_arm_perf_validate_pattrs),
+	.get_event_nattrs	= pfm_arm_get_event_nattrs,
+};
+
+/* Fujitsu A64FX support */
+pfmlib_pmu_t arm_fujitsu_a64fx_support={
+	.desc			= "Fujitsu A64FX",
+	.name			= "arm_a64fx",
+	.pmu			= PFM_PMU_ARM_A64FX,
+	.pme_count		= LIBPFM_ARRAY_SIZE(arm_a64fx_pe),
+	.type			= PFM_PMU_TYPE_CORE,
+	.supported_plm          = ARMV8_PLM,
+	.pe			= arm_a64fx_pe,
+
+	.pmu_detect		= pfm_arm_detect_a64fx,
+	.max_encoding		= 1,
+	.num_cntrs		= 6,
+
+	.get_event_encoding[PFM_OS_NONE] = pfm_arm_get_encoding,
+	 PFMLIB_ENCODE_PERF(pfm_arm_get_perf_encoding),
+	.get_event_first	= pfm_arm_get_event_first,
+	.get_event_next		= pfm_arm_get_event_next,
+	.event_is_valid		= pfm_arm_event_is_valid,
+	.validate_table		= pfm_arm_validate_table,
+	.get_event_info		= pfm_arm_get_event_info,
+	.get_event_attr_info	= pfm_arm_get_event_attr_info,
+	 PFMLIB_VALID_PERF_PATTRS(pfm_arm_perf_validate_pattrs),
+	.get_event_nattrs	= pfm_arm_get_event_nattrs,
+};
+
+// For uncore, each socket has a separate perf name, otherwise they are the same, use macro
+
+#define DEFINE_TX2_DMC(n) \
+pfmlib_pmu_t arm_thunderx2_dmc##n##_support={ \
+	.desc			= "Marvell ThunderX2 Node"#n" DMC", \
+	.name			= "tx2_dmc"#n, \
+	.perf_name		= "uncore_dmc_"#n, \
+	.pmu			= PFM_PMU_ARM_THUNDERX2_DMC##n, \
+	.pme_count		= LIBPFM_ARRAY_SIZE(arm_thunderx2_unc_dmc_pe), \
+	.type			= PFM_PMU_TYPE_UNCORE, \
+	.pe			= arm_thunderx2_unc_dmc_pe, \
+	.pmu_detect		= pfm_arm_detect_thunderx2, \
+	.max_encoding		= 1, \
+	.num_cntrs		= 4, \
+	.get_event_encoding[PFM_OS_NONE] = pfm_tx2_unc_get_event_encoding, \
+	 PFMLIB_ENCODE_PERF(pfm_tx2_unc_get_perf_encoding),		\
+	.get_event_first	= pfm_arm_get_event_first, \
+	.get_event_next		= pfm_arm_get_event_next,  \
+	.event_is_valid		= pfm_arm_event_is_valid,  \
+	.validate_table		= pfm_arm_validate_table,  \
+	.get_event_info		= pfm_arm_get_event_info,  \
+	.get_event_attr_info	= pfm_arm_get_event_attr_info,	\
+	 PFMLIB_VALID_PERF_PATTRS(pfm_arm_perf_validate_pattrs),\
+	.get_event_nattrs	= pfm_arm_get_event_nattrs, \
+};
+
+DEFINE_TX2_DMC(0);
+DEFINE_TX2_DMC(1);
+
+#define DEFINE_TX2_LLC(n) \
+pfmlib_pmu_t arm_thunderx2_llc##n##_support={ \
+	.desc			= "Marvell ThunderX2 node "#n" LLC", \
+	.name			= "tx2_llc"#n, \
+	.perf_name		= "uncore_l3c_"#n, \
+	.pmu			= PFM_PMU_ARM_THUNDERX2_LLC##n, \
+	.pme_count		= LIBPFM_ARRAY_SIZE(arm_thunderx2_unc_llc_pe), \
+	.type			= PFM_PMU_TYPE_UNCORE, \
+	.pe			= arm_thunderx2_unc_llc_pe, \
+	.pmu_detect		= pfm_arm_detect_thunderx2, \
+	.max_encoding		= 1, \
+	.num_cntrs		= 4, \
+	.get_event_encoding[PFM_OS_NONE] = pfm_tx2_unc_get_event_encoding, \
+	 PFMLIB_ENCODE_PERF(pfm_tx2_unc_get_perf_encoding),		\
+	.get_event_first	= pfm_arm_get_event_first, \
+	.get_event_next		= pfm_arm_get_event_next,  \
+	.event_is_valid		= pfm_arm_event_is_valid,  \
+	.validate_table		= pfm_arm_validate_table,  \
+	.get_event_info		= pfm_arm_get_event_info,  \
+	.get_event_attr_info	= pfm_arm_get_event_attr_info,	\
+	 PFMLIB_VALID_PERF_PATTRS(pfm_arm_perf_validate_pattrs),\
+	.get_event_nattrs	= pfm_arm_get_event_nattrs, \
+};
+
+DEFINE_TX2_LLC(0);
+DEFINE_TX2_LLC(1);
+
+#define DEFINE_TX2_CCPI(n) \
+pfmlib_pmu_t arm_thunderx2_ccpi##n##_support={ \
+	.desc			= "Marvell ThunderX2 node "#n" Cross-Socket Interconnect", \
+	.name			= "tx2_ccpi"#n, \
+	.perf_name		= "uncore_ccpi_"#n, \
+	.pmu			= PFM_PMU_ARM_THUNDERX2_CCPI##n, \
+	.pme_count		= LIBPFM_ARRAY_SIZE(arm_thunderx2_unc_ccpi_pe), \
+	.type			= PFM_PMU_TYPE_UNCORE, \
+	.pe			= arm_thunderx2_unc_ccpi_pe, \
+	.pmu_detect		= pfm_arm_detect_thunderx2, \
+	.max_encoding		= 1, \
+	.num_cntrs		= 4, \
+	.get_event_encoding[PFM_OS_NONE] = pfm_tx2_unc_get_event_encoding, \
+	 PFMLIB_ENCODE_PERF(pfm_tx2_unc_get_perf_encoding),		\
+	.get_event_first	= pfm_arm_get_event_first, \
+	.get_event_next		= pfm_arm_get_event_next,  \
+	.event_is_valid		= pfm_arm_event_is_valid,  \
+	.validate_table		= pfm_arm_validate_table,  \
+	.get_event_info		= pfm_arm_get_event_info,  \
+	.get_event_attr_info	= pfm_arm_get_event_attr_info,	\
+	 PFMLIB_VALID_PERF_PATTRS(pfm_arm_perf_validate_pattrs),\
+	.get_event_nattrs	= pfm_arm_get_event_nattrs, \
+};
+
+DEFINE_TX2_CCPI(0);
+DEFINE_TX2_CCPI(1);
+
+pfmlib_pmu_t arm_n1_support={
+	.desc			= "ARM Neoverse N1",
+	.name			= "arm_n1",
+	.pmu			= PFM_PMU_ARM_N1,
+	.pme_count		= LIBPFM_ARRAY_SIZE(arm_n1_pe),
+	.type			= PFM_PMU_TYPE_CORE,
+	.supported_plm          = ARMV8_PLM,
+	.pe			= arm_n1_pe,
+
+	.pmu_detect		= pfm_arm_detect_n1,
+	.max_encoding		= 1,
+	.num_cntrs		= 6,
 
 	.get_event_encoding[PFM_OS_NONE] = pfm_arm_get_encoding,
 	 PFMLIB_ENCODE_PERF(pfm_arm_get_perf_encoding),

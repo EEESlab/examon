@@ -64,17 +64,19 @@ typedef struct {
 	int		numasks;		/* number of unit masls */
 	int		ngrp;			/* number of umasks groups */
 	unsigned long	umask_ovfl_idx;		/* base index of overflow unit masks */
+	int		flags;			/* evnet flags */
 	perf_umask_t	umasks[PERF_MAX_UMASKS];/* first unit masks */
 } perf_event_t;
 
 /*
- * umask options: uflags
+ * event/umask flags
  */
 #define PERF_FL_DEFAULT	0x1	/* umask is default for group */
+#define PERF_FL_PRECISE	0x2	/* support precise sampling */
 
 #define PERF_INVAL_OVFL_IDX ((unsigned long)-1)
 
-#define PCL_EVT(f, t, m)	\
+#define PCL_EVT(f, t, m, fl)	\
 	{ .name = #f,		\
 	  .id = (f),		\
 	  .type = (t),		\
@@ -83,10 +85,11 @@ typedef struct {
 	  .numasks = 0,		\
 	  .modmsk = (m),	\
 	  .ngrp = 0,		\
+	  .flags = fl,		\
 	  .umask_ovfl_idx = PERF_INVAL_OVFL_IDX,\
 	}
 
-#define PCL_EVTA(f, t, m, a)	\
+#define PCL_EVTA(f, t, m, a, fl)\
 	{ .name = #f,		\
 	  .id = a,		\
 	  .type = t,		\
@@ -95,13 +98,15 @@ typedef struct {
 	  .numasks = 0,		\
 	  .modmsk = m,		\
 	  .ngrp = 0,		\
+	  .flags = fl,		\
 	  .umask_ovfl_idx = PERF_INVAL_OVFL_IDX,\
 	}
 
-#define PCL_EVT_HW(n) PCL_EVT(PERF_COUNT_HW_##n, PERF_TYPE_HARDWARE, PERF_ATTR_HW)
-#define PCL_EVT_SW(n) PCL_EVT(PERF_COUNT_SW_##n, PERF_TYPE_SOFTWARE, PERF_ATTR_SW)
-#define PCL_EVT_AHW(n, a) PCL_EVTA(n, PERF_TYPE_HARDWARE, PERF_ATTR_HW, PERF_COUNT_HW_##a)
-#define PCL_EVT_ASW(n, a) PCL_EVTA(n, PERF_TYPE_SOFTWARE, PERF_ATTR_SW, PERF_COUNT_SW_##a)
+#define PCL_EVT_HW(n) PCL_EVT(PERF_COUNT_HW_##n, PERF_TYPE_HARDWARE, PERF_ATTR_HW, 0)
+#define PCL_EVT_SW(n) PCL_EVT(PERF_COUNT_SW_##n, PERF_TYPE_SOFTWARE, PERF_ATTR_SW, 0)
+#define PCL_EVT_AHW(n, a) PCL_EVTA(n, PERF_TYPE_HARDWARE, PERF_ATTR_HW, PERF_COUNT_HW_##a, 0)
+#define PCL_EVT_ASW(n, a) PCL_EVTA(n, PERF_TYPE_SOFTWARE, PERF_ATTR_SW, PERF_COUNT_SW_##a, 0)
+#define PCL_EVT_HW_FL(n, fl) PCL_EVT(PERF_COUNT_HW_##n, PERF_TYPE_HARDWARE, PERF_ATTR_HW, fl)
 
 #ifndef MAXPATHLEN
 #define MAXPATHLEN	1024
@@ -323,6 +328,7 @@ gen_tracepoint_table(void)
 	int reuse_event = 0;
 	int numasks;
 	char *tracepoint_name;
+	int retlen;
 
 	err = get_debugfs_mnt();
 	if (err == -1)
@@ -346,7 +352,10 @@ gen_tracepoint_table(void)
 		if (!strcmp(d1->d_name, ".."))
 			continue;
 
-		snprintf(d2path, MAXPATHLEN, "%s/%s", debugfs_mnt, d1->d_name);
+		retlen = snprintf(d2path, MAXPATHLEN, "%s/%s", debugfs_mnt, d1->d_name);
+		/* ensure generated d2path string is valid */
+		if (retlen <= 0 || MAXPATHLEN <= retlen)
+			continue;
 
 		/* fails if d2path is not a directory */
 		dir2 = opendir(d2path);
@@ -393,10 +402,18 @@ gen_tracepoint_table(void)
 				continue;
 
 #ifdef HAS_OPENAT
-                        snprintf(idpath, MAXPATHLEN, "%s/id", d2->d_name);
+			retlen = snprintf(idpath, MAXPATHLEN, "%s/id", d2->d_name);
+			/* ensure generated d2path string is valid */
+			if (retlen <= 0 || MAXPATHLEN <= retlen)
+			continue;
+
                         fd = openat(dir2_fd, idpath, O_RDONLY);
 #else
-                        snprintf(idpath, MAXPATHLEN, "%s/%s/id", d2path, d2->d_name);
+                        retlen = snprintf(idpath, MAXPATHLEN, "%s/%s/id", d2path, d2->d_name);
+			/* ensure generated d2path string is valid */
+			if (retlen <= 0 || MAXPATHLEN <= retlen)
+			continue;
+
                         fd = open(idpath, O_RDONLY);
 #endif
 			if (fd == -1)
@@ -569,7 +586,7 @@ static int
 pfmlib_perf_encode_tp(pfmlib_event_desc_t *e)
 {
 	perf_umask_t *um;
-	pfm_event_attr_info_t *a;
+	pfmlib_event_attr_info_t *a;
 	int i, nu = 0;
 
 	e->fstr[0] = '\0';
@@ -607,7 +624,7 @@ pfmlib_perf_encode_tp(pfmlib_event_desc_t *e)
 static int
 pfmlib_perf_encode_hw_cache(pfmlib_event_desc_t *e)
 {
-	pfm_event_attr_info_t *a;
+	pfmlib_event_attr_info_t *a;
 	perf_event_t *ent;
 	unsigned int msk, grpmsk;
 	uint64_t umask = 0;
@@ -733,7 +750,7 @@ pfm_perf_event_is_valid(void *this, int idx)
 }
 
 static int
-pfm_perf_get_event_attr_info(void *this, int idx, int attr_idx, pfm_event_attr_info_t *info)
+pfm_perf_get_event_attr_info(void *this, int idx, int attr_idx, pfmlib_event_attr_info_t *info)
 {
 	perf_umask_t *um;
 
@@ -747,7 +764,7 @@ pfm_perf_get_event_attr_info(void *this, int idx, int attr_idx, pfm_event_attr_i
 	info->type = PFM_ATTR_UMASK;
 	info->ctrl = PFM_ATTR_CTRL_PMU;
 
-	info->is_precise = 0;
+	info->is_precise =  !!(um->uflags & PERF_FL_PRECISE);
 	info->is_dfl = 0;
 	info->idx = attr_idx;
 	info->dfl_val64 = 0;
@@ -765,7 +782,7 @@ pfm_perf_get_event_info(void *this, int idx, pfm_event_info_t *info)
 	info->equiv = perf_pe[idx].equiv;
 	info->idx   = idx;
 	info->pmu   = pmu->pmu;
-	info->is_precise = 0;
+	info->is_precise =  !!(perf_pe[idx].flags & PERF_FL_PRECISE);
 
 	/* unit masks + modifiers */
 	info->nattrs  = perf_pe[idx].numasks;

@@ -34,7 +34,7 @@
  * maximum number of unit masks groups per event
  */
 #define INTEL_X86_NUM_GRP	8
-#define INTEL_X86_MAX_FILTERS	3
+#define INTEL_X86_MAX_FILTERS	2
 
 /*
  * unit mask description
@@ -45,15 +45,20 @@ typedef struct {
 	const char		*uequiv;/* name of event from which this one is derived, NULL if none */
 	uint64_t		ucntmsk;/* supported counters for umask (if set, supersedes cntmsk) */
 	uint64_t		ucode;  /* unit mask code */
-	uint64_t		ufilters[INTEL_X86_MAX_FILTERS]; /* extra encoding for event */
+	/*
+	 * extra 32-bit encoding for event
+	 * filter[0]: bit 0-31 is set mask, bit 32-63 is clear mask
+	 * filter[1]: bit 0-31 is set mask, bit 32-63 is clear mask
+	 */
+	uint64_t		ufilters[INTEL_X86_MAX_FILTERS];
 	unsigned int		uflags;	/* unit mask flags */
-	unsigned int		umodel; /* only available on this PMU model */
-	unsigned int		grpid;	/* unit mask group id */
+	unsigned short		umodel; /* only available on this PMU model */
+	unsigned short		grpid;	/* unit mask group id */
 	unsigned int		modhw;	/* hardwired modifiers, cannot be changed */
 	unsigned int		umodmsk_req; /* bitmask of required modifiers */
 } intel_x86_umask_t;
 
-#define INTEL_X86_MAX_GRPID	(~0U)
+#define INTEL_X86_MAX_GRPID	((unsigned short)(~0))
 
 /*
  * event description
@@ -68,28 +73,33 @@ typedef struct {
 	unsigned int			flags;	/* flags */
 	unsigned int			modmsk;	/* bitmask of modifiers for this event */
 	unsigned int			modmsk_req; /* bitmask of required modifiers */
-	unsigned int			ngrp;	/* number of unit masks groups */
+	unsigned short			ngrp;	/* number of unit masks groups */
+	unsigned short			model;	/*  only available on this PMU model */
 	const intel_x86_umask_t		*umasks; /* umask desc */
 } intel_x86_entry_t;
 
 /*
  * pme_flags value (event and unit mask)
  */
-#define INTEL_X86_NCOMBO		0x0001	/* unit masks within group cannot be combined */
-#define INTEL_X86_FALLBACK_GEN		0x0002	/* fallback from fixed to generic counter possible */
-#define INTEL_X86_PEBS			0x0004 	/* event supports PEBS or at least one umask supports PEBS */
-#define INTEL_X86_DFL			0x0008	/* unit mask is default choice */
-#define INTEL_X86_GRP_EXCL		0x0010	/* only one unit mask group can be selected */
-#define INTEL_X86_NHM_OFFCORE		0x0020	/* Nehalem/Westmere offcore_response */
-#define INTEL_X86_EXCL_GRP_GT		0x0040	/* exclude use of grp with id > own grp */
-#define INTEL_X86_FIXED			0x0080	/* fixed counter only event */
-#define INTEL_X86_NO_AUTOENCODE		0x0100	/* does not support auto encoding validation */
-#define INTEL_X86_CODE_OVERRIDE		0x0200	/* umask overrides event code */
-#define INTEL_X86_LDLAT			0x0400	/* needs load latency modifier (ldlat) */
-#define INTEL_X86_GRP_DFL_NONE		0x0800	/* ok if umask group defaults to no umask */
-#define INTEL_X86_FRONTEND		0x1000	/* Skylake Precise frontend */
-#define INTEL_X86_FETHR			0x2000	/* precise frontend umask requires threshold modifier (fe_thres) */
-#define INTEL_X86_EXCL_GRP_BUT_0	0x4000	/* exclude all groups except self and grpid = 0 */
+#define INTEL_X86_NCOMBO		0x00001	/* unit masks within group cannot be combined */
+#define INTEL_X86_FALLBACK_GEN		0x00002	/* fallback from fixed to generic counter possible */
+#define INTEL_X86_PEBS			0x00004 /* event supports PEBS or at least one umask supports PEBS */
+#define INTEL_X86_DFL			0x00008	/* unit mask is default choice */
+#define INTEL_X86_GRP_EXCL		0x00010	/* only one unit mask group can be selected */
+#define INTEL_X86_NHM_OFFCORE		0x00020	/* Nehalem/Westmere offcore_response */
+#define INTEL_X86_EXCL_GRP_GT		0x00040	/* exclude use of grp with id > own grp */
+#define INTEL_X86_FIXED			0x00080	/* fixed counter only event */
+#define INTEL_X86_NO_AUTOENCODE		0x00100	/* does not support auto encoding validation */
+#define INTEL_X86_CODE_OVERRIDE		0x00200	/* umask overrides event code */
+#define INTEL_X86_LDLAT			0x00400	/* needs load latency modifier (ldlat) */
+#define INTEL_X86_GRP_DFL_NONE		0x00800	/* ok if umask group defaults to no umask */
+#define INTEL_X86_FRONTEND		0x01000	/* Skylake Precise frontend */
+#define INTEL_X86_FETHR			0x02000	/* precise frontend umask requires threshold modifier (fe_thres) */
+#define INTEL_X86_EXCL_GRP_BUT_0	0x04000	/* exclude all groups except self and grpid = 0 */
+#define INTEL_X86_GRP_REQ		0x08000	/* grpid field split as (grpid & 0xff) | (required_grpid & 0xff) << 8 */
+#define INTEL_X86_FILT_UMASK		0x10000	/* Event use filter which may be encoded in umask */
+#define INTEL_X86_FORCE_FILT0		0x20000	/* Event must set filter0 even if zero value */
+#define INTEL_X86_SPEC			0x40000 /* Event includes speculative execution */
 
 typedef union pfm_intel_x86_reg {
 	unsigned long long val;			/* complete register value */
@@ -179,7 +189,11 @@ typedef union pfm_intel_x86_reg {
 #define INTEL_FIXED3_ATTRS	(INTEL_FIXED2_ATTRS|_INTEL_X86_ATTR_T)
 #define INTEL_V3_ATTRS 		(INTEL_V2_ATTRS|_INTEL_X86_ATTR_T)
 #define INTEL_V4_ATTRS 		(INTEL_V3_ATTRS | _INTEL_X86_ATTR_INTX | _INTEL_X86_ATTR_INTXCP)
-#define INTEL_SKL_FE_ATTRS 	(INTEL_V4_ATTRS | _INTEL_X86_ATTR_FETHR)
+#define INTEL_V5_ATTRS 		(INTEL_V2_ATTRS | _INTEL_X86_ATTR_INTX | _INTEL_X86_ATTR_INTXCP)
+#define INTEL_SKL_FE_ATTRS 	(INTEL_V2_ATTRS         |\
+				 _INTEL_X86_ATTR_INTX   |\
+				 _INTEL_X86_ATTR_INTXCP |\
+				 _INTEL_X86_ATTR_FETHR)
 
 /* let's define some handy shortcuts! */
 #define sel_event_select perfevtsel.sel_event_select
@@ -214,7 +228,8 @@ typedef union pfm_intel_x86_reg {
 /*
  * Intel x86 specific pmu flags (pmu->flags 16 MSB)
  */
-#define INTEL_X86_PMU_FL_ECMASK 0x10000	/* edge requires cmask >=1 */
+#define INTEL_X86_PMU_FL_ECMASK  0x10000 /* edge requires cmask >=1 */
+#define INTEL_X86_PMU_FL_EXTPEBS 0x20000 /* PMU supports ExtendedPEBS */
 
 /*
  * default ldlat value for PEBS-LL events. Used when ldlat= is missing
@@ -265,12 +280,24 @@ intel_x86_eflag(void *this, int idx, int flag)
 }
 
 static inline int
+is_model_event(void *this, int pidx)
+{
+	pfmlib_pmu_t *pmu = this;
+	const intel_x86_entry_t *pe = this_pe(this);
+	unsigned short model;
+
+	model = pe[pidx].model;
+
+	return model == 0 || model == pmu->pmu;
+}
+
+static inline int
 is_model_umask(void *this, int pidx, int attr)
 {
 	pfmlib_pmu_t *pmu = this;
 	const intel_x86_entry_t *pe = this_pe(this);
 	const intel_x86_entry_t *ent;
-	unsigned int model;
+	unsigned short model;
 
 	ent = pe + pidx;
 	model = ent->umasks[attr].umodel;
@@ -290,7 +317,8 @@ intel_x86_num_umasks(void *this, int pidx)
 {
 	pfmlib_pmu_t *pmu = this;
 	const intel_x86_entry_t *pe = this_pe(this);
-	unsigned int i, n = 0, model;
+	unsigned int i, n = 0;
+	unsigned short model;
 
 	/*
 	 * some umasks may be model specific
@@ -325,8 +353,18 @@ intel_x86_attr2umask(void *this, int pidx, int attr_idx)
 	return i;
 }
 
+static inline unsigned short get_grpid(unsigned short  grpid)
+{
+	return grpid & 0xff;
+}
+
+static inline unsigned short get_req_grpid(unsigned short  grpid)
+{
+	return (grpid >> 8) & 0xff;
+}
+
 extern int pfm_intel_x86_detect(void);
-extern int pfm_intel_x86_add_defaults(void *this, pfmlib_event_desc_t *e, unsigned int msk, uint64_t *umask, unsigned int max_grpid, int excl_grp_but_0);
+extern int pfm_intel_x86_add_defaults(void *this, pfmlib_event_desc_t *e, unsigned int msk, uint64_t *umask, unsigned short max_grpid, int excl_grp_but_0);
 
 extern int pfm_intel_x86_event_is_valid(void *this, int pidx);
 extern int pfm_intel_x86_get_encoding(void *this, pfmlib_event_desc_t *e);
@@ -335,7 +373,7 @@ extern int pfm_intel_x86_get_event_next(void *this, int idx);
 extern int pfm_intel_x86_get_event_umask_first(void *this, int idx);
 extern int pfm_intel_x86_get_event_umask_next(void *this, int idx, int attr);
 extern int pfm_intel_x86_validate_table(void *this, FILE *fp);
-extern int pfm_intel_x86_get_event_attr_info(void *this, int idx, int attr_idx, pfm_event_attr_info_t *info);
+extern int pfm_intel_x86_get_event_attr_info(void *this, int idx, int attr_idx, pfmlib_event_attr_info_t *info);
 extern int pfm_intel_x86_get_event_info(void *this, int idx, pfm_event_info_t *info);
 extern int pfm_intel_x86_valid_pebs(pfmlib_event_desc_t *e);
 extern int pfm_intel_x86_perf_event_encoding(pfmlib_event_desc_t *e, void *data);
@@ -348,5 +386,6 @@ extern int pfm_intel_nhm_unc_get_perf_encoding(void *this, pfmlib_event_desc_t *
 extern void pfm_intel_x86_perf_validate_pattrs(void *this, pfmlib_event_desc_t *e);
 extern int pfm_intel_x86_can_auto_encode(void *this, int pidx, int uidx);
 extern int pfm_intel_x86_model_detect(void *this);
+extern int pfm_intel_x86_get_num_events(void *this);
 
 #endif /* __PFMLIB_INTEL_X86_PRIV_H__ */

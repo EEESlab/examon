@@ -37,6 +37,8 @@
 #define CPUM_CF_DEVICE_DIR  "/sys/bus/event_source/devices/cpum_cf"
 #define CPUM_SF_DEVICE_DIR  "/sys/bus/event_source/devices/cpum_sf"
 #define SYS_INFO	    "/proc/sysinfo"
+#define SERVICE_LEVEL	    "/proc/service_levels"
+#define CF_VERSION_STR	    "CPU-MF: Counter facility: version="
 
 
 /* CPU-measurement counter list (pmu events) */
@@ -99,6 +101,37 @@ out:
 	return machine_type;
 }
 
+static void get_cf_version(unsigned int *cfvn, unsigned int *csvn)
+{
+	int rc;
+	FILE *fp;
+	char *buffer;
+	size_t buflen;
+
+	*cfvn = *csvn = 0;
+	fp = fopen(SERVICE_LEVEL, "r");
+	if (fp == NULL)
+		return;
+
+	buffer = NULL;
+	while (pfmlib_getl(&buffer, &buflen, fp) != -1) {
+		/* skip empty lines */
+		if (*buffer == '\n')
+			continue;
+
+		/* look for 'CPU-MF: Counter facility: version=' entry */
+		if (!strncmp(CF_VERSION_STR, buffer, strlen(CF_VERSION_STR))) {
+			rc = sscanf(buffer + strlen(CF_VERSION_STR), "%u.%u",
+				    cfvn, csvn);
+			if (rc != 2)
+				*cfvn = *csvn = 0;
+			break;
+		}
+	}
+	fclose(fp);
+	free(buffer);
+}
+
 /* Initialize the PMU representation for CPUMF.
  *
  * Set up the PMU events array based on
@@ -108,8 +141,35 @@ out:
 static int pfm_cpumcf_init(void *this)
 {
 	pfmlib_pmu_t *pmu = this;
-	const pme_cpumf_ctr_t *ext_set;
-	size_t generic_count, ext_set_count;
+	unsigned int cfvn, csvn;
+	const pme_cpumf_ctr_t *cfvn_set, *csvn_set, *ext_set;
+	size_t cfvn_set_count, csvn_set_count, ext_set_count, pme_count;
+
+	/* obtain counter first/second version number */
+	get_cf_version(&cfvn, &csvn);
+
+	/* counters based on first version number */
+	switch (cfvn)
+	{
+	case 1:
+		cfvn_set = cpumcf_fvn1_counters;
+		cfvn_set_count = LIBPFM_ARRAY_SIZE(cpumcf_fvn1_counters);
+		break;
+	case 3:
+		cfvn_set = cpumcf_fvn3_counters;
+		cfvn_set_count = LIBPFM_ARRAY_SIZE(cpumcf_fvn3_counters);
+		break;
+	default:
+		cfvn_set = NULL;
+		cfvn_set_count = 0;
+		break;
+	}
+
+	/* counters based on second version number */
+	csvn_set = cpumcf_svn_generic_counters;
+	csvn_set_count = LIBPFM_ARRAY_SIZE(cpumcf_svn_generic_counters);
+	if (csvn < 6)	/* Crypto counter set enlarged for SVN == 6 */
+		csvn_set_count -= CPUMF_SVN6_ECC;
 
 	/* check and assign a machine-specific extended counter set */
 	switch (get_machine_type()) {
@@ -128,6 +188,21 @@ static int pfm_cpumcf_init(void *this)
 		ext_set = cpumcf_zec12_counters;
 		ext_set_count = LIBPFM_ARRAY_SIZE(cpumcf_zec12_counters);
 		break;
+	case 2964:  /* IBM z13  */
+	case 2965:  /* IBM z13s */
+		ext_set = cpumcf_z13_counters;
+		ext_set_count = LIBPFM_ARRAY_SIZE(cpumcf_z13_counters);
+		break;
+	case 3906:  /* IBM z14  */
+	case 3907:  /* IBM z14 ZR1  */
+		ext_set = cpumcf_z14_counters;
+		ext_set_count = LIBPFM_ARRAY_SIZE(cpumcf_z14_counters);
+		break;
+	case 8561:  /* IBM Machine types 8561 and 8562 */
+	case 8562:
+		ext_set = cpumcf_z15_counters;
+		ext_set_count = LIBPFM_ARRAY_SIZE(cpumcf_z15_counters);
+		break;
 	default:
 		/* No extended counter set for this machine type or there
 		 * was an error retrieving the machine type */
@@ -136,20 +211,30 @@ static int pfm_cpumcf_init(void *this)
 		break;
 	}
 
-	generic_count = LIBPFM_ARRAY_SIZE(cpumcf_generic_counters);
-
-	cpumcf_pe = calloc(sizeof(*cpumcf_pe), generic_count + ext_set_count);
+	cpumcf_pe = calloc(sizeof(*cpumcf_pe),
+			   cfvn_set_count + csvn_set_count + ext_set_count);
 	if (cpumcf_pe == NULL)
 		return PFM_ERR_NOMEM;
 
-	memcpy(cpumcf_pe, cpumcf_generic_counters,
-	       sizeof(*cpumcf_pe) * generic_count);
+	pme_count = 0;
+	memcpy(cpumcf_pe, cfvn_set, sizeof(*cpumcf_pe) * cfvn_set_count);
+	pme_count += cfvn_set_count;
+	memcpy((void *) (cpumcf_pe + pme_count), csvn_set,
+	       sizeof(*cpumcf_pe) * csvn_set_count);
+	pme_count += csvn_set_count;
 	if (ext_set_count)
-		memcpy((void *) (cpumcf_pe + generic_count),
+		memcpy((void *) (cpumcf_pe + pme_count),
 		       ext_set, sizeof(*cpumcf_pe) * ext_set_count);
+	pme_count += ext_set_count;
 
 	pmu->pe = cpumcf_pe;
-	pmu->pme_count = generic_count + ext_set_count;
+	pmu->pme_count = pme_count;
+
+	/* CPUM-CF provides fixed counters only. The number of installed
+	 * counters depends on the version and hardware model up to
+	 * CPUMF_COUNTER_MAX.
+	 */
+	pmu->num_fixed_cntrs = pme_count;
 
 	return PFM_SUCCESS;
 }
@@ -177,7 +262,9 @@ static int pfm_cpumf_get_encoding(void *this, pfmlib_event_desc_t *e)
 
 static int pfm_cpumf_get_event_first(void *this)
 {
-	return 0;
+	pfmlib_pmu_t *pmu = this;
+
+	return !!pmu->pme_count ? 0 : -1;
 }
 
 static int pfm_cpumf_get_event_next(void *this, int idx)
@@ -240,6 +327,9 @@ static int pfm_cpumf_get_event_info(void *this, int idx,
 	pfmlib_pmu_t *pmu = this;
 	const pme_cpumf_ctr_t *pe = this_pe(this);
 
+	if (idx >= pmu->pme_count)
+		return PFM_ERR_INVAL;
+
 	info->name = pe[idx].name;
 	info->desc = pe[idx].desc;
 	info->code = pe[idx].ctrnum;
@@ -254,7 +344,7 @@ static int pfm_cpumf_get_event_info(void *this, int idx,
 }
 
 static int pfm_cpumf_get_event_attr_info(void *this, int idx, int umask_idx,
-					 pfm_event_attr_info_t *info)
+					 pfmlib_event_attr_info_t *info)
 {
 	/* Attributes are not supported */
 	return PFM_ERR_ATTR;
@@ -271,8 +361,8 @@ pfmlib_pmu_t s390x_cpum_cf_support = {
 	.num_fixed_cntrs = CPUMF_COUNTER_MAX,	/* fixed counters only */
 	.max_encoding	 = 1,
 
-	.pe		 = cpumcf_generic_counters,
-	.pme_count	 = LIBPFM_ARRAY_SIZE(cpumcf_generic_counters),
+	.pe		 = NULL,
+	.pme_count	 = 0,
 
 	.pmu_detect    = pfm_cpumcf_detect,
 	.pmu_init      = pfm_cpumcf_init,

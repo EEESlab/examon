@@ -82,7 +82,7 @@ static int
 pfm_nhm_unc_get_encoding(void *this, pfmlib_event_desc_t *e)
 {
 	pfm_intel_x86_reg_t reg;
-	pfm_event_attr_info_t *a;
+	pfmlib_event_attr_info_t *a;
 	const intel_x86_entry_t *pe = this_pe(this);
 	unsigned int grpmsk, ugrpmsk = 0;
 	int umodmsk = 0, modmsk_r = 0;
@@ -97,7 +97,6 @@ pfm_nhm_unc_get_encoding(void *this, pfmlib_event_desc_t *e)
 	memset(grpcounts, 0, sizeof(grpcounts));
 	memset(ncombo, 0, sizeof(ncombo));
 
-	pe = this_pe(this);
 	umask_str[0] = e->fstr[0] = '\0';
 
 	reg.val = 0;

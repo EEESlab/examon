@@ -48,30 +48,34 @@ LPC_UTILS_HDR=perf_util.h
 
 TARGETS+=self self_basic self_count task task_attach_timeout syst \
 	notify_self notify_group task_smpl self_smpl_multi \
-	self_pipe syst_count task_cpu syst_smpl evt2raw
+	self_pipe syst_count task_cpu syst_smpl evt2raw \
+	branch_smpl
+
+# Make rtop conditional on ncurses development package installed
+ifeq ($(shell /bin/echo -e '\#include <ncurses.h>\nint main(void) { return 0;}' | $(CC) -o /dev/null -xc - 2>/dev/null && echo -n yes), yes)
+RTOP=rtop
+endif
 
 EXAMPLESDIR=$(DESTDIR)$(DOCDIR)/perf_examples
 
-all: $(TARGETS)
+all: $(TARGETS) $(RTOP)
 	@set -e ; for d in $(DIRS) ; do $(MAKE) -C $$d $@ ; done
-#
-# Many systems don't have ncurses-devel installed
-#
-rtop: rtop.o $(PFMLIB)
-	-$(CC) $(CFLAGS) $(LDFLAGS) -D_GNU_SOURCE -o $@ $^ $(LIBS)  -lpthread -lncurses -lm
 
-$(TARGETS): %:%.o $(LPC_UTILS) $(PFMLIB) $(PERF_EVENT_HDR)
-	$(CC) $(CFLAGS) -o $@ $(LDFLAGS) $< $(LPC_UTILS) $(PFMLIB) $(LIBS) 
+rtop: rtop.o $(LPC_UTILS) $(PFMLIB) $(PERF_EVENT_HDR)
+	$(CC) $(CFLAGS) -o $@ $(LDFLAGS) $< $(LPC_UTILS) $(PFMLIB) $(LIBS) -lpthread -lncurses -ltinfo -lm
+
+$(TARGETS): %:%.o $(LPC_UTILS) $(PFMLIB)
+	-$(CC) $(CFLAGS) -o $@ $(LDFLAGS) $< $(LPC_UTILS) $(PFMLIB) $(LIBS) 
 
 $(LPC_UTILS): $(LPC_UTILS_HDR)
 
 clean:
 	@set -e ; for d in $(DIRS) ; do $(MAKE) -C $$d $@ ; done
-	$(RM) -f *.o $(TARGETS) *~
+	$(RM) -f *.o $(TARGETS) rtop *~
 
 distclean: clean
 
-install_examples: $(TARGETS)
+install-examples install_examples: $(TARGETS)
 	@echo installing: $(TARGETS)
 	-mkdir -p $(EXAMPLESDIR)
 	$(INSTALL) -m 755 $(TARGETS) $(EXAMPLESDIR)
@@ -79,4 +83,4 @@ install_examples: $(TARGETS)
 #
 # examples are installed as part of the RPM install, typically in /usr/share/doc/libpfm-X.Y/
 #
-.PHONY: install depend install_examples
+.PHONY: install depend install_examples install-examples

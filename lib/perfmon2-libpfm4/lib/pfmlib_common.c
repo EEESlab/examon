@@ -77,6 +77,10 @@ static pfmlib_pmu_t *pfmlib_pmus[]=
 	&amd64_fam14h_bobcat_support,
 	&amd64_fam15h_interlagos_support,
 	&amd64_fam15h_nb_support,
+	&amd64_fam16h_support,
+	&amd64_fam17h_deprecated_support,
+	&amd64_fam17h_zen1_support,
+	&amd64_fam17h_zen2_support,
 	&intel_core_support,
 	&intel_atom_support,
 	&intel_nhm_support,
@@ -102,6 +106,9 @@ static pfmlib_pmu_t *pfmlib_pmus[]=
 	&intel_bdw_support,
 	&intel_bdw_ep_support,
 	&intel_skl_support,
+	&intel_skx_support,
+	&intel_clx_support,
+	&intel_icl_support,
 	&intel_rapl_support,
 	&intel_snbep_unc_cb0_support,
 	&intel_snbep_unc_cb1_support,
@@ -126,6 +133,7 @@ static pfmlib_pmu_t *pfmlib_pmus[]=
 	&intel_knc_support,
 	&intel_slm_support,
 	&intel_glm_support,
+	&intel_tmt_support,
 	&intel_ivbep_unc_cb0_support,
 	&intel_ivbep_unc_cb1_support,
 	&intel_ivbep_unc_cb2_support,
@@ -266,6 +274,169 @@ static pfmlib_pmu_t *pfmlib_pmus[]=
 	&intel_knl_unc_cha36_support,
 	&intel_knl_unc_cha37_support,
 	&intel_knl_unc_m2pcie_support,
+	&intel_bdx_unc_cb0_support,
+	&intel_bdx_unc_cb1_support,
+	&intel_bdx_unc_cb2_support,
+	&intel_bdx_unc_cb3_support,
+	&intel_bdx_unc_cb4_support,
+	&intel_bdx_unc_cb5_support,
+	&intel_bdx_unc_cb6_support,
+	&intel_bdx_unc_cb7_support,
+	&intel_bdx_unc_cb8_support,
+	&intel_bdx_unc_cb9_support,
+	&intel_bdx_unc_cb10_support,
+	&intel_bdx_unc_cb11_support,
+	&intel_bdx_unc_cb12_support,
+	&intel_bdx_unc_cb13_support,
+	&intel_bdx_unc_cb14_support,
+	&intel_bdx_unc_cb15_support,
+	&intel_bdx_unc_cb16_support,
+	&intel_bdx_unc_cb17_support,
+	&intel_bdx_unc_cb18_support,
+	&intel_bdx_unc_cb19_support,
+	&intel_bdx_unc_cb20_support,
+	&intel_bdx_unc_cb21_support,
+	&intel_bdx_unc_cb22_support,
+	&intel_bdx_unc_cb23_support,
+	&intel_bdx_unc_ubo_support,
+	&intel_bdx_unc_sbo0_support,
+	&intel_bdx_unc_sbo1_support,
+	&intel_bdx_unc_sbo2_support,
+	&intel_bdx_unc_sbo3_support,
+	&intel_bdx_unc_ha0_support,
+	&intel_bdx_unc_ha1_support,
+	&intel_bdx_unc_imc0_support,
+	&intel_bdx_unc_imc1_support,
+	&intel_bdx_unc_imc2_support,
+	&intel_bdx_unc_imc3_support,
+	&intel_bdx_unc_imc4_support,
+	&intel_bdx_unc_imc5_support,
+	&intel_bdx_unc_imc6_support,
+	&intel_bdx_unc_imc7_support,
+	&intel_bdx_unc_irp_support,
+	&intel_bdx_unc_pcu_support,
+	&intel_bdx_unc_qpi0_support,
+	&intel_bdx_unc_qpi1_support,
+	&intel_bdx_unc_qpi2_support,
+	&intel_bdx_unc_r2pcie_support,
+	&intel_bdx_unc_r3qpi0_support,
+	&intel_bdx_unc_r3qpi1_support,
+	&intel_bdx_unc_r3qpi2_support,
+	&intel_skx_unc_cha0_support,
+	&intel_skx_unc_cha1_support,
+	&intel_skx_unc_cha2_support,
+	&intel_skx_unc_cha3_support,
+	&intel_skx_unc_cha4_support,
+	&intel_skx_unc_cha5_support,
+	&intel_skx_unc_cha6_support,
+	&intel_skx_unc_cha7_support,
+	&intel_skx_unc_cha8_support,
+	&intel_skx_unc_cha9_support,
+	&intel_skx_unc_cha10_support,
+	&intel_skx_unc_cha11_support,
+	&intel_skx_unc_cha12_support,
+	&intel_skx_unc_cha13_support,
+	&intel_skx_unc_cha14_support,
+	&intel_skx_unc_cha15_support,
+	&intel_skx_unc_cha16_support,
+	&intel_skx_unc_cha17_support,
+	&intel_skx_unc_cha18_support,
+	&intel_skx_unc_cha19_support,
+	&intel_skx_unc_cha20_support,
+	&intel_skx_unc_cha21_support,
+	&intel_skx_unc_cha22_support,
+	&intel_skx_unc_cha23_support,
+	&intel_skx_unc_cha24_support,
+	&intel_skx_unc_cha25_support,
+	&intel_skx_unc_cha26_support,
+	&intel_skx_unc_cha27_support,
+	&intel_skx_unc_iio0_support,
+	&intel_skx_unc_iio1_support,
+	&intel_skx_unc_iio2_support,
+	&intel_skx_unc_iio3_support,
+	&intel_skx_unc_iio4_support,
+	&intel_skx_unc_iio5_support,
+	&intel_skx_unc_imc0_support,
+	&intel_skx_unc_imc1_support,
+	&intel_skx_unc_imc2_support,
+	&intel_skx_unc_imc3_support,
+	&intel_skx_unc_imc4_support,
+	&intel_skx_unc_imc5_support,
+	&intel_skx_unc_pcu_support,
+	&intel_skx_unc_upi0_support,
+	&intel_skx_unc_upi1_support,
+	&intel_skx_unc_upi2_support,
+	&intel_skx_unc_m2m0_support,
+	&intel_skx_unc_m2m1_support,
+	&intel_skx_unc_ubo_support,
+	&intel_skx_unc_m3upi0_support,
+	&intel_skx_unc_m3upi1_support,
+	&intel_skx_unc_m3upi2_support,
+	&intel_skx_unc_irp_support,
+	&intel_knm_support,
+	&intel_knm_unc_imc0_support,
+	&intel_knm_unc_imc1_support,
+	&intel_knm_unc_imc2_support,
+	&intel_knm_unc_imc3_support,
+	&intel_knm_unc_imc4_support,
+	&intel_knm_unc_imc5_support,
+	&intel_knm_unc_imc_uclk0_support,
+	&intel_knm_unc_imc_uclk1_support,
+	&intel_knm_unc_edc_uclk0_support,
+	&intel_knm_unc_edc_uclk1_support,
+	&intel_knm_unc_edc_uclk2_support,
+	&intel_knm_unc_edc_uclk3_support,
+	&intel_knm_unc_edc_uclk4_support,
+	&intel_knm_unc_edc_uclk5_support,
+	&intel_knm_unc_edc_uclk6_support,
+	&intel_knm_unc_edc_uclk7_support,
+	&intel_knm_unc_edc_eclk0_support,
+	&intel_knm_unc_edc_eclk1_support,
+	&intel_knm_unc_edc_eclk2_support,
+	&intel_knm_unc_edc_eclk3_support,
+	&intel_knm_unc_edc_eclk4_support,
+	&intel_knm_unc_edc_eclk5_support,
+	&intel_knm_unc_edc_eclk6_support,
+	&intel_knm_unc_edc_eclk7_support,
+	&intel_knm_unc_cha0_support,
+	&intel_knm_unc_cha1_support,
+	&intel_knm_unc_cha2_support,
+	&intel_knm_unc_cha3_support,
+	&intel_knm_unc_cha4_support,
+	&intel_knm_unc_cha5_support,
+	&intel_knm_unc_cha6_support,
+	&intel_knm_unc_cha7_support,
+	&intel_knm_unc_cha8_support,
+	&intel_knm_unc_cha9_support,
+	&intel_knm_unc_cha10_support,
+	&intel_knm_unc_cha11_support,
+	&intel_knm_unc_cha12_support,
+	&intel_knm_unc_cha13_support,
+	&intel_knm_unc_cha14_support,
+	&intel_knm_unc_cha15_support,
+	&intel_knm_unc_cha16_support,
+	&intel_knm_unc_cha17_support,
+	&intel_knm_unc_cha18_support,
+	&intel_knm_unc_cha19_support,
+	&intel_knm_unc_cha20_support,
+	&intel_knm_unc_cha21_support,
+	&intel_knm_unc_cha22_support,
+	&intel_knm_unc_cha23_support,
+	&intel_knm_unc_cha24_support,
+	&intel_knm_unc_cha25_support,
+	&intel_knm_unc_cha26_support,
+	&intel_knm_unc_cha27_support,
+	&intel_knm_unc_cha28_support,
+	&intel_knm_unc_cha29_support,
+	&intel_knm_unc_cha30_support,
+	&intel_knm_unc_cha31_support,
+	&intel_knm_unc_cha32_support,
+	&intel_knm_unc_cha33_support,
+	&intel_knm_unc_cha34_support,
+	&intel_knm_unc_cha35_support,
+	&intel_knm_unc_cha36_support,
+	&intel_knm_unc_cha37_support,
+	&intel_knm_unc_m2pcie_support,
 	&intel_x86_arch_support, /* must always be last for x86 */
 #endif
 
@@ -286,6 +457,7 @@ static pfmlib_pmu_t *pfmlib_pmus[]=
 	&power6_support,
 	&power7_support,
 	&power8_support,
+	&power9_support,
 	&torrent_support,
     &powerpc_nest_mcs_read_support,
     &powerpc_nest_mcs_write_support,
@@ -315,11 +487,29 @@ static pfmlib_pmu_t *pfmlib_pmus[]=
 	&arm_cortex_a57_support,
 	&arm_cortex_a53_support,
 	&arm_xgene_support,
+	&arm_thunderx2_support,
+	&arm_thunderx2_dmc0_support,
+	&arm_thunderx2_dmc1_support,
+	&arm_thunderx2_llc0_support,
+	&arm_thunderx2_llc1_support,
+	&arm_thunderx2_ccpi0_support,
+	&arm_thunderx2_ccpi1_support,
+	&arm_fujitsu_a64fx_support,
+	&arm_n1_support,
 #endif
 #ifdef CONFIG_PFMLIB_ARCH_ARM64
 	&arm_cortex_a57_support,
 	&arm_cortex_a53_support,
 	&arm_xgene_support,
+	&arm_thunderx2_support,
+	&arm_thunderx2_dmc0_support,
+	&arm_thunderx2_dmc1_support,
+	&arm_thunderx2_llc0_support,
+	&arm_thunderx2_llc1_support,
+	&arm_thunderx2_ccpi0_support,
+	&arm_thunderx2_ccpi1_support,
+	&arm_fujitsu_a64fx_support,
+	&arm_n1_support,
 #endif
 
 #ifdef CONFIG_PFMLIB_ARCH_S390X
@@ -355,6 +545,30 @@ static pfmlib_os_t *pfmlib_oses[]={
  */
 static pfmlib_pmu_t *pfmlib_pmus_map[PFM_PMU_MAX];
 
+/*
+ * A drop-in replacement for strsep(). strsep() is not part of the POSIX
+ * standard, and it is not available on all platforms - in particular it is not
+ * provided by Microsoft's C runtime or by MinGW.
+ */
+static char* pfmlib_strsep(char **stringp, const char *delim)
+{
+	char* token = *stringp;
+	char* end = *stringp;
+
+	if (!end)
+		return NULL;
+
+	while (*end && !strchr(delim, *end))
+		end++;
+
+	if (*end) {
+		*end = '\0';
+		*stringp = end + 1;
+	} else {
+		*stringp = NULL;
+	}
+	return token;
+}
 
 #define pfmlib_for_each_pmu_event(p, e) \
 	for(e=(p)->get_event_first((p)); e != -1; e = (p)->get_event_next((p), e))
@@ -412,7 +626,7 @@ pfmlib_getl(char **buffer, size_t *len, FILE *fp)
 	int c;
 	size_t maxsz, maxi, d, i = 0;
 
-	if (!len || !fp || !buffer)
+	if (!len || !fp || !buffer || (*buffer && *len < 2))
 		return -1;
 
 	b = *buffer;
@@ -504,7 +718,7 @@ pfmlib_compact_attrs(pfmlib_event_desc_t *e, int i)
 static inline int
 pfmlib_same_attr(pfmlib_event_desc_t *d, int i, int j)
 {
-	pfm_event_attr_info_t *a1, *a2;
+	pfmlib_event_attr_info_t *a1, *a2;
 	pfmlib_attr_t *b1, *b2;
 
 	a1 = attr(d, i);
@@ -531,6 +745,12 @@ pfmlib_pmu_active(pfmlib_pmu_t *pmu)
 }
 
 static inline int
+pfmlib_pmu_deprecated(pfmlib_pmu_t *pmu)
+{
+        return !!(pmu->flags & PFMLIB_PMU_FL_DEPR);
+}
+
+static inline int
 pfmlib_pmu_initialized(pfmlib_pmu_t *pmu)
 {
         return !!(pmu->flags & PFMLIB_PMU_FL_INIT);
@@ -539,7 +759,7 @@ pfmlib_pmu_initialized(pfmlib_pmu_t *pmu)
 static inline pfm_pmu_t
 idx2pmu(int idx)
 {
-	return (pfm_pmu_t)(idx >> PFMLIB_PMU_SHIFT) & PFMLIB_PMU_MASK;
+	return (pfm_pmu_t)((idx >> PFMLIB_PMU_SHIFT) & PFMLIB_PMU_MASK);
 }
 
 static inline pfmlib_pmu_t *
@@ -718,7 +938,7 @@ pfmlib_pmu_activate(pfmlib_pmu_t *p)
 
 	DPRINT("activated %s\n", p->desc);
 
-	return PFM_SUCCESS;	
+	return PFM_SUCCESS;
 }
 
 static inline int
@@ -967,7 +1187,7 @@ pfmlib_sanitize_event(pfmlib_event_desc_t *d)
 static int
 pfmlib_parse_event_attr(char *str, pfmlib_event_desc_t *d)
 {
-	pfm_event_attr_info_t *ainfo;
+	pfmlib_event_attr_info_t *ainfo;
 	char *s, *p, *q, *endptr;
 	char yes[2] = "y";
 	pfm_attr_t type;
@@ -978,7 +1198,7 @@ pfmlib_parse_event_attr(char *str, pfmlib_event_desc_t *d)
 
 	while(s) {
 	        p = s;
-	        strsep(&p, PFMLIB_ATTR_DELIM);
+	        pfmlib_strsep(&p, PFMLIB_ATTR_DELIM);
 		/* if (p)
 		 *p++ = '\0'; */
 
@@ -1011,10 +1231,11 @@ pfmlib_parse_event_attr(char *str, pfmlib_event_desc_t *d)
 			ainfo->name = "RAW_UMASK";
 			ainfo->type = PFM_ATTR_RAW_UMASK;
 			ainfo->ctrl = PFM_ATTR_CTRL_PMU;
+			/* can handle up to 64-bit raw umask */
 			ainfo->idx  = strtoull(s, &endptr, 0);
 			ainfo->equiv= NULL;
 			if (*endptr) {
-				DPRINT("raw umask (%s) is not a number\n", s);
+				DPRINT("raw umask (%s) is not a number\n");
 				return PFM_ERR_ATTR;
 			}
 
@@ -1161,7 +1382,7 @@ pfmlib_build_event_pattrs(pfmlib_event_desc_t  *e)
 		npattrs++;
 
 	if (npattrs) {
-		e->pattrs = malloc(npattrs * sizeof(*e->pattrs));
+		e->pattrs = calloc(npattrs, sizeof(*e->pattrs));
 		if (!e->pattrs)
 			return PFM_ERR_NOMEM;
 	}
@@ -1225,7 +1446,7 @@ pfmlib_parse_equiv_event(const char *event, pfmlib_event_desc_t *d)
 		return PFM_ERR_NOMEM;
 
 	p = s;
-	strsep(&p, PFMLIB_ATTR_DELIM);
+	pfmlib_strsep(&p, PFMLIB_ATTR_DELIM);
 	/* if (p)
 	 *p++ = '\0'; */
 
@@ -1276,22 +1497,18 @@ pfmlib_parse_event(const char *event, pfmlib_event_desc_t *d)
 	int i, j, ret;
 
 	/*
+	 * support only one event at a time.
+	 */
+	p = strpbrk(event, PFMLIB_EVENT_DELIM);
+	if (p)
+		return PFM_ERR_INVAL;
+	/*
 	 * create copy because string is const
 	 */
 	s = str = strdup(event);
 	if (!str)
 		return PFM_ERR_NOMEM;
 
-	/*
-	 * ignore everything passed after a comma
-	 * (simplify dealing with const event list)
-	 *
-	 * safe to do before pname, because now
-	 * PMU name cannot have commas in them.
-	 */
-	p = strchr(s, PFMLIB_EVENT_DELIM);
-	if (p)
-		*p = '\0';
 
 	/* check for optional PMU name */
 	p = strstr(s, PFMLIB_PMU_DELIM);
@@ -1301,7 +1518,7 @@ pfmlib_parse_event(const char *event, pfmlib_event_desc_t *d)
 		s = p + strlen(PFMLIB_PMU_DELIM);
 	}
 	p = s;
-	strsep(&p, PFMLIB_ATTR_DELIM);
+	pfmlib_strsep(&p, PFMLIB_ATTR_DELIM);
 	/* if (p)
 	 *p++ = '\0'; */
 
@@ -1315,6 +1532,14 @@ pfmlib_parse_event(const char *event, pfmlib_event_desc_t *d)
 		 * only look for active PMU models
 		 */
 		if (!pname && !pfmlib_pmu_active(pmu))
+			continue;
+
+		/*
+		 * if the PMU name is not passed, then if
+		 * the pmu is deprecated, then skip it. It means
+		 * there is a better candidate in the active list
+		 */
+		if (!pname && pfmlib_pmu_deprecated(pmu))
 			continue;
 		/*
 		 * check for requested PMU name,
@@ -1366,11 +1591,11 @@ found:
 		ret = pfmlib_sanitize_event(d);
 
 	for (i = 0; i < d->nattrs; i++) {
-		pfm_event_attr_info_t *a = attr(d, i);
+		pfmlib_event_attr_info_t *a = attr(d, i);
 		if (a->type != PFM_ATTR_RAW_UMASK)
-			DPRINT("%d %d %"PRIu64" %s\n", d->event, i, a->idx, d->pattrs[d->attrs[i].id].name);
+			DPRINT("%d %d %d %s\n", d->event, i, a->idx, d->pattrs[d->attrs[i].id].name);
 		else
-			DPRINT("%d %d RAW_UMASK (0x%"PRIx64")\n", d->event, i, a->idx);
+			DPRINT("%d %d RAW_UMASK (0x%x)\n", d->event, i, a->idx);
 	}
 error:
 	free(str);
@@ -1549,7 +1774,7 @@ static int
 pfmlib_pmu_validate_encoding(pfmlib_pmu_t *pmu, FILE *fp)
 {
 	pfm_event_info_t einfo;
-	pfm_event_attr_info_t ainfo;
+	pfmlib_event_attr_info_t ainfo;
 	char *buf;
 	size_t maxlen = 0, len;
 	int i, u, n = 0, um;
@@ -1783,8 +2008,8 @@ pfm_get_event_info(int idx, pfm_os_t os, pfm_event_info_t *uinfo)
 	/* default data type is uint64 */
 	info.dtype = PFM_DTYPE_UINT64;
 
-	/* reset flags */
-	info.is_precise = 0;
+	/* initialize flags */
+	info.is_speculative = PFM_EVENT_INFO_SPEC_NA;
 
 	ret = pmu->get_event_info(pmu, pidx, &info);
 	if (ret != PFM_SUCCESS)
@@ -1811,10 +2036,10 @@ pfm_get_event_info(int idx, pfm_os_t os, pfm_event_info_t *uinfo)
 int
 pfm_get_event_attr_info(int idx, int attr_idx, pfm_os_t os, pfm_event_attr_info_t *uinfo)
 {
-	pfm_event_attr_info_t info;
+	pfmlib_event_attr_info_t *info;
 	pfmlib_event_desc_t e;
 	pfmlib_pmu_t *pmu;
-	size_t sz = sizeof(info);
+	size_t sz = sizeof(*info);
 	int pidx, ret;
 
 	if (!PFMLIB_INITIALIZED())
@@ -1851,23 +2076,30 @@ pfm_get_event_attr_info(int idx, int attr_idx, pfm_os_t os, pfm_event_attr_info_
 	if (attr_idx >= e.npattrs)
 		goto error;
 
-	/*
-	 * copy event_attr_info
-	 */
-	info = e.pattrs[attr_idx];
+	info = &e.pattrs[attr_idx];
 
-	/*
-	 * rewrite size to reflect what we are returning
-	 */
-	info.size = sz;
 	/*
 	 * info.idx = private, namespace specific index,
 	 * should not be visible externally, so override
 	 * with public index
+	 *
+	 * cannot memcpy() info into uinfo as they do not
+	 * have the same size, cf. idx field (uint64 vs, uint32)
 	 */
-	info.idx  = attr_idx;
-
-	memcpy(uinfo, &info, sz);
+	uinfo->name  = info->name;
+	uinfo->desc  = info->desc;
+	uinfo->equiv = info->equiv;
+	uinfo->size  = sz;
+	uinfo->code  = info->code;
+	uinfo->type  = info->type;
+	uinfo->idx   = attr_idx;
+	uinfo->ctrl  = info->ctrl;
+	uinfo->is_dfl= info->is_dfl;
+	uinfo->is_precise = info->is_precise;
+	uinfo->is_speculative = info->is_speculative;
+	uinfo->support_hw_smpl = info->support_hw_smpl;
+	uinfo->reserved_bits = 0;
+	uinfo->dfl_val64 = info->dfl_val64;
 
 	ret = PFM_SUCCESS;
 error:
