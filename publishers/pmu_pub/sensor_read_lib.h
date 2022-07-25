@@ -150,6 +150,7 @@
 #define BROADWELL_DE	86
 #define SKYLAKE		78
 #define SKYLAKE_HS	94
+#define SKYLAKE_X   85
 
 
 

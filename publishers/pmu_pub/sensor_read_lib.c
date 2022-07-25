@@ -481,6 +481,9 @@ int detect_cpu_model(struct sys_data * sysd) {
         case SKYLAKE_HS:
             printf("Skylake");
             break;
+        case SKYLAKE_X:
+            printf("Skylake X");
+            break;
         default:
             printf("Unknown model %d\n", model);
             model = -1;
@@ -497,7 +500,8 @@ int detect_cpu_model(struct sys_data * sysd) {
                 (model == IVYBRIDGE_EP) ||
                 (model == HASWELL_EP) ||
                 (model == HASWELL) ||
-                (model == BROADWELL)) {
+                (model == BROADWELL) ||
+                (model == SKYLAKE_X)) {
 
             sysd->DRAM_SUPP = 1;
         }
@@ -544,7 +548,8 @@ int detect_nominal_frequency(struct sys_data * sysd) {
             (model == BROADWELL) ||
             (model == BROADWELL_EP) ||
             (model == BROADWELL_DE) ||
-            (model == SKYLAKE_HS)) {
+            (model == SKYLAKE_HS) ||
+            (model == SKYLAKE_X)) {
 
         bus_freq = 100000000;
 
